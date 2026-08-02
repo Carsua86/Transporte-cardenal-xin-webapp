@@ -1,6 +1,6 @@
 # Cardenal Xin SpA — Panel de Gestión de Flota
 
-[![CI](https://github.com/Carsua86/cardenal-xin-webapp/actions/workflows/ci.yml/badge.svg)](https://github.com/Carsua86/cardenal-xin-webapp/actions/workflows/ci.yml)
+[![CI](https://github.com/Carsua86/Transporte-cardenal-xin-webapp/actions/workflows/ci.yml/badge.svg)](https://github.com/Carsua86/Transporte-cardenal-xin-webapp/actions/workflows/ci.yml)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth%20%2B%20Storage-3ECF8E)
