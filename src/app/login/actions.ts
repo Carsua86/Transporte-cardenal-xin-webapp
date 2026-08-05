@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export async function login(_prevState: string | null, formData: FormData) {
@@ -14,5 +13,5 @@ export async function login(_prevState: string | null, formData: FormData) {
     return "No se pudo iniciar sesión. Revisa tu correo y contraseña.";
   }
 
-  redirect("/");
+  return null;
 }

@@ -1,11 +1,31 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { login } from "./actions";
 import { inputClass, labelClass } from "@/lib/ui";
+import { WelcomeOverlay } from "@/components/login/welcome-overlay";
 
 export function LoginForm() {
   const [error, formAction, pending] = useActionState(login, null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const wasPending = useRef(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (wasPending.current && !pending && error === null) {
+      setShowWelcome(true);
+    }
+    wasPending.current = pending;
+  }, [pending, error]);
+
+  useEffect(() => {
+    if (!showWelcome) return;
+    const timer = setTimeout(() => router.push("/"), 1700);
+    return () => clearTimeout(timer);
+  }, [showWelcome, router]);
+
+  if (showWelcome) return <WelcomeOverlay />;
 
   return (
     <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
