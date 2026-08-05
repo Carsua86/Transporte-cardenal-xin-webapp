@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { logout } from "@/lib/actions/auth";
-import { HighwayScene } from "@/components/illustrations/highway-scene";
+import { PhotoBackground } from "@/components/illustrations/photo-background";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="relative flex min-h-screen bg-neutral-50">
-      <HighwayScene className="pointer-events-none fixed inset-0 h-full w-full opacity-[0.07]" />
+      <PhotoBackground className="fixed h-full w-full opacity-[0.14]" overlayClassName="bg-neutral-50/70" />
       <Sidebar />
       <div className="relative flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-3 shadow-[0_1px_0_0_var(--gold-400)]">
