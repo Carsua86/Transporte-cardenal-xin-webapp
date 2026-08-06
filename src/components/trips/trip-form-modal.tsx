@@ -33,6 +33,12 @@ export function TripFormModal({
   const [regionDestino, setRegionDestino] = useState(initial?.region_destino ?? "");
   const [vendedor, setVendedor] = useState(initial?.vendedor ?? "");
   const [montoFlete, setMontoFlete] = useState(initial?.monto_flete ?? "");
+  const [clienteQuery, setClienteQuery] = useState(() => {
+    const c = clientes.find((c) => c.id === initial?.cliente_id);
+    return c ? `${c.rut} — ${c.razon_social}` : "";
+  });
+  const [showClienteList, setShowClienteList] = useState(false);
+  const [clienteError, setClienteError] = useState(false);
 
   function handleClienteChange(id: string) {
     setClienteId(id);
@@ -46,6 +52,19 @@ export function TripFormModal({
     }
   }
 
+  function selectCliente(id: string) {
+    const cliente = clientes.find((c) => c.id === id);
+    handleClienteChange(id);
+    setClienteQuery(cliente ? `${cliente.rut} — ${cliente.razon_social}` : "");
+    setShowClienteList(false);
+    setClienteError(false);
+  }
+
+  const q = clienteQuery.trim().toLowerCase();
+  const filteredClientes = q
+    ? clientes.filter((c) => c.rut.toLowerCase().includes(q) || c.razon_social.toLowerCase().includes(q))
+    : clientes;
+
   const montoFleteNum = Number(montoFlete || 0);
 
   return (
@@ -57,7 +76,17 @@ export function TripFormModal({
             ✕
           </Link>
         </div>
-        <form action={formAction} className="max-h-[75vh] overflow-y-auto px-5 py-4">
+        <form
+          action={formAction}
+          onSubmit={(e) => {
+            if (!clienteId) {
+              e.preventDefault();
+              setClienteError(true);
+              setShowClienteList(true);
+            }
+          }}
+          className="max-h-[75vh] overflow-y-auto px-5 py-4"
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <label className={labelClass} htmlFor="f_fecha">Fecha <span className="text-brand-600">*</span></label>
@@ -84,24 +113,44 @@ export function TripFormModal({
               </select>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className={labelClass} htmlFor="f_cliente_id">Cliente (RUT) <span className="text-brand-600">*</span></label>
-              <select
-                id="f_cliente_id"
-                name="cliente_id"
-                required
-                value={clienteId}
-                onChange={(e) => handleClienteChange(e.target.value)}
+            <div className="relative flex flex-col gap-1">
+              <label className={labelClass} htmlFor="f_cliente_search">Cliente (RUT) <span className="text-brand-600">*</span></label>
+              <input
+                id="f_cliente_search"
+                type="text"
+                autoComplete="off"
+                placeholder="Escribe el RUT o el nombre del cliente…"
+                value={clienteQuery}
+                onChange={(e) => {
+                  setClienteQuery(e.target.value);
+                  setShowClienteList(true);
+                  if (!e.target.value.trim()) { setClienteId(""); }
+                }}
+                onFocus={() => setShowClienteList(true)}
+                onBlur={() => setTimeout(() => setShowClienteList(false), 150)}
                 className={inputClass}
-              >
-                <option value="" disabled>— Selecciona por RUT / razón social —</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.rut} — {c.razon_social}</option>
-                ))}
-              </select>
+              />
+              <input type="hidden" name="cliente_id" value={clienteId} />
+              {showClienteList && filteredClientes.length > 0 && (
+                <ul className="absolute top-full z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-lg">
+                  {filteredClientes.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectCliente(c.id)}
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-50"
+                      >
+                        <span className="font-mono">{c.rut}</span> — {c.razon_social}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {clientes.length === 0 && (
                 <p className="text-xs text-amber-600">No hay clientes creados todavía — ve a Clientes y crea uno primero.</p>
               )}
+              {clienteError && <p className="text-xs text-red-600">Selecciona un cliente de la lista.</p>}
             </div>
 
             <div className="flex flex-col gap-1">
