@@ -199,12 +199,16 @@ export const MODULES: Record<string, ModuleDef> = {
       { key: "fecha", label: "Fecha", type: "date", required: true },
       { key: "monto", label: "Monto", type: "number", required: true },
       { key: "descripcion", label: "Descripción", type: "text" },
+      { key: "fecha_descuento", label: "Fecha de descuento (opcional)", type: "date" },
+      { key: "estado", label: "Estado", type: "select", options: ["Pendiente", "Descontado"] },
     ],
     columns: [
       { label: "Conductor", render: (r, ctx) => driverName(ctx, r.driver_id) },
       { label: "Fecha", render: (r) => fmtDate(r.fecha) },
       { label: "Descripción", render: (r) => r.descripcion || "—" },
       { label: "Monto", render: (r) => <span className="font-mono font-semibold">{fmtMoney(r.monto)}</span> },
+      { label: "Descuento", render: (r) => (r.fecha_descuento ? fmtDate(r.fecha_descuento) : "—") },
+      { label: "Estado", render: (r) => <Badge level={r.estado === "Descontado" ? "ok" : "warn"} text={r.estado || "Pendiente"} /> },
     ],
   },
 

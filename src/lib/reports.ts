@@ -171,6 +171,11 @@ export function noteStatus(nota: Nota) {
   return expiryStatus(nota.fecha_recordatorio, 7);
 }
 
+export function loanDeductionStatus(prestamo: Prestamo) {
+  if (!prestamo.fecha_descuento || prestamo.estado === "Descontado") return null;
+  return expiryStatus(prestamo.fecha_descuento, 5);
+}
+
 export const IVA_DUE_DAY = 20;
 export const PREVIRED_DUE_DAY = 10;
 

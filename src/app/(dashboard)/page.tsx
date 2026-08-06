@@ -2,11 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDate, fmtMoney, todayStr } from "@/lib/format";
 import {
-  IVA_DUE_DAY, PREVIRED_DUE_DAY, documentStatus, ipcAdjustmentStatus, licenseStatus, maintenanceStatus,
-  monthlyAggregate, noteStatus, taxDeadlineStatus,
+  IVA_DUE_DAY, PREVIRED_DUE_DAY, documentStatus, ipcAdjustmentStatus, licenseStatus, loanDeductionStatus,
+  maintenanceStatus, monthlyAggregate, noteStatus, taxDeadlineStatus,
 } from "@/lib/reports";
 import { Badge } from "@/components/badge";
-import type { Cliente, Truck } from "@/lib/supabase/types";
+import type { Cliente, Driver, Truck } from "@/lib/supabase/types";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -24,6 +24,7 @@ export default async function DashboardPage() {
     { data: clientes },
     { data: notas },
     { data: ajustesIpc },
+    { data: prestamos },
   ] = await Promise.all([
     supabase.from("trucks").select("*"),
     supabase.from("drivers").select("*"),
@@ -37,10 +38,12 @@ export default async function DashboardPage() {
     supabase.from("clientes").select("*"),
     supabase.from("notas").select("*").eq("estado", "Pendiente"),
     supabase.from("ajustes_ipc").select("*"),
+    supabase.from("prestamos").select("*").eq("estado", "Pendiente"),
   ]);
 
   const trucksData = trucks ?? [];
   const truckById = new Map<string, Truck>(trucksData.map((t) => [t.id, t]));
+  const driverById = new Map<string, Driver>((drivers ?? []).map((d) => [d.id, d]));
   const clienteById = new Map<string, Cliente>((clientes ?? []).map((c) => [c.id, c]));
   const activeTrucks = trucksData.filter((t) => t.estado === "Operativo").length;
   const activeDrivers = (drivers ?? []).filter((d) => d.estado !== "Inactivo").length;
@@ -78,8 +81,16 @@ export default async function DashboardPage() {
   const taxAlerts = [ivaAlert, previredAlert].filter((x) => x.status.level !== "ok");
   const ipcStatus = ipcAdjustmentStatus(ajustesIpc ?? []);
   const ipcAlerts = ipcStatus.level !== "ok" ? [{ kind: "Sueldos", label: "Reajuste anual IPC", meta: "", status: ipcStatus }] : [];
+  const loanAlerts = (prestamos ?? [])
+    .map((p) => ({
+      kind: "Préstamo",
+      label: `Descontar a ${driverById.get(p.driver_id)?.nombre ?? "—"}`,
+      meta: fmtMoney(p.monto),
+      status: loanDeductionStatus(p),
+    }))
+    .filter((x): x is typeof x & { status: NonNullable<typeof x.status> } => x.status !== null && x.status.level !== "ok");
 
-  const allAlerts = [...docAlerts, ...maintAlerts, ...licenseAlerts, ...noteAlerts, ...taxAlerts, ...ipcAlerts].sort(
+  const allAlerts = [...docAlerts, ...maintAlerts, ...licenseAlerts, ...noteAlerts, ...taxAlerts, ...ipcAlerts, ...loanAlerts].sort(
     (a, b) => (a.status.level === "danger" ? 0 : 1) - (b.status.level === "danger" ? 0 : 1),
   );
 

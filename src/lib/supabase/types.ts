@@ -38,6 +38,8 @@ export type Prestamo = {
   fecha: string;
   monto: number;
   descripcion: string | null;
+  fecha_descuento: string | null;
+  estado: "Pendiente" | "Descontado";
   created_at: string;
   updated_at: string;
 };
