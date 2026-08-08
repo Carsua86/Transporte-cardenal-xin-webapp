@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { Invoice, InvoicePayment } from "@/lib/supabase/types";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { invoiceTotals } from "@/lib/invoices";
@@ -17,6 +17,7 @@ export function PaymentsModal({
   closeHref: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
   const t = invoiceTotals(invoice, payments);
 
   return (
@@ -59,7 +60,10 @@ export function PaymentsModal({
                       type="button"
                       disabled={pending}
                       className="text-xs text-neutral-400 hover:text-red-600"
-                      onClick={() => startTransition(async () => { await deletePayment(invoice.id, p.id); })}
+                      onClick={() => startTransition(async () => {
+                        const res = await deletePayment(invoice.id, p.id);
+                        setFormError(res.error);
+                      })}
                     >
                       quitar
                     </button>
@@ -69,9 +73,14 @@ export function PaymentsModal({
             </div>
           )}
 
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
+
           <form
             className="flex flex-wrap items-end gap-2"
-            action={(formData) => startTransition(async () => { await addPayment(invoice.id, formData); })}
+            action={(formData) => startTransition(async () => {
+              const res = await addPayment(invoice.id, formData);
+              setFormError(res.error);
+            })}
           >
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-neutral-600" htmlFor="fecha">Fecha</label>

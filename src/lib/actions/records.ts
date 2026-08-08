@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { MODULES, type Row } from "@/lib/modules";
 import { uploadFile } from "@/lib/storage";
+import { friendlyActionError } from "@/lib/actions/errors";
 
 async function buildPayload(moduleKey: string, formData: FormData, supabase: SupabaseClient) {
   const mod = MODULES[moduleKey];
@@ -39,14 +40,20 @@ async function buildPayload(moduleKey: string, formData: FormData, supabase: Sup
 
 export async function upsertRecord(moduleKey: string, id: string | null, formData: FormData) {
   const supabase = await createClient();
-  const { mod, payload } = await buildPayload(moduleKey, formData, supabase);
+
+  let mod, payload;
+  try {
+    ({ mod, payload } = await buildPayload(moduleKey, formData, supabase));
+  } catch (e) {
+    return { error: friendlyActionError(e instanceof Error ? e.message : String(e)) };
+  }
 
   const { error } = id
     ? await supabase.from(mod.table).update(payload).eq("id", id)
     : await supabase.from(mod.table).insert(payload);
 
   if (error) {
-    return { error: error.message };
+    return { error: friendlyActionError(error.message) };
   }
 
   revalidatePath(`/${moduleKey}`);
@@ -61,7 +68,7 @@ export async function deleteRecord(moduleKey: string, id: string) {
   const { error } = await supabase.from(mod.table).delete().eq("id", id);
 
   if (error) {
-    return { error: error.message };
+    return { error: friendlyActionError(error.message) };
   }
 
   revalidatePath(`/${moduleKey}`);

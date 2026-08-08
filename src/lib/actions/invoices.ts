@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { friendlyActionError } from "@/lib/actions/errors";
 
 export async function addPayment(invoiceId: string, formData: FormData) {
   const fecha = String(formData.get("fecha") || "");
@@ -12,7 +13,7 @@ export async function addPayment(invoiceId: string, formData: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.from("invoice_payments").insert({ invoice_id: invoiceId, fecha, monto, tipo, concepto });
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyActionError(error.message) };
 
   revalidatePath("/invoices");
   return { error: null };
@@ -21,7 +22,7 @@ export async function addPayment(invoiceId: string, formData: FormData) {
 export async function deletePayment(invoiceId: string, paymentId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("invoice_payments").delete().eq("id", paymentId);
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyActionError(error.message) };
 
   revalidatePath("/invoices");
   return { error: null };

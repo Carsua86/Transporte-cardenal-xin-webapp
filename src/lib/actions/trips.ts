@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MODULES, type Row } from "@/lib/modules";
+import { friendlyActionError } from "@/lib/actions/errors";
 
 export async function upsertTrip(id: string | null, formData: FormData) {
   const supabase = await createClient();
@@ -39,10 +40,10 @@ export async function upsertTrip(id: string | null, formData: FormData) {
 
     if (fuelId) {
       const { error: fuelError } = await supabase.from("fuel").update(fuelPayload).eq("id", fuelId);
-      if (fuelError) return { error: fuelError.message };
+      if (fuelError) return { error: friendlyActionError(fuelError.message) };
     } else {
       const { data: newFuel, error: fuelError } = await supabase.from("fuel").insert(fuelPayload).select("id").single();
-      if (fuelError) return { error: fuelError.message };
+      if (fuelError) return { error: friendlyActionError(fuelError.message) };
       fuelId = newFuel?.id ?? null;
     }
     payload.fuel_id = fuelId;
@@ -52,7 +53,7 @@ export async function upsertTrip(id: string | null, formData: FormData) {
     ? await supabase.from("trips").update(payload).eq("id", id)
     : await supabase.from("trips").insert(payload);
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyActionError(error.message) };
 
   revalidatePath("/trips");
   revalidatePath("/fuel");
