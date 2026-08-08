@@ -53,6 +53,7 @@ export function PaymentsModal({
                       <span className={p.tipo === "Descuento" ? "text-amber-600" : "text-emerald-700"}>
                         ({p.tipo === "Descuento" ? "Descuento" : "Abono"})
                       </span>
+                      {p.concepto ? ` · ${p.concepto}` : ""}
                     </span>
                     <button
                       type="button"
@@ -86,6 +87,10 @@ export function PaymentsModal({
                 <option value="Abono">Abono</option>
                 <option value="Descuento">Descuento</option>
               </select>
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-600" htmlFor="concepto">Concepto (opcional)</label>
+              <input id="concepto" name="concepto" type="text" placeholder="Ej. pronto pago, diferencia de tarifa…" className="w-full rounded-xl border border-neutral-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
             </div>
             <button
               type="submit"

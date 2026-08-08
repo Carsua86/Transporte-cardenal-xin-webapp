@@ -141,6 +141,7 @@ export type InvoicePayment = {
   fecha: string;
   monto: number;
   tipo: "Abono" | "Descuento";
+  concepto: string | null;
   created_at: string;
 };
 
