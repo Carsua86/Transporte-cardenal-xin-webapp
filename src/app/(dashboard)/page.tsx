@@ -65,7 +65,12 @@ export default async function DashboardPage() {
   }).length;
 
   const docAlerts = (documents ?? [])
-    .map((d) => ({ kind: "Documento", label: d.tipo, meta: truckById.get(d.truck_id)?.patente ?? "—", status: documentStatus(d) }))
+    .map((d) => ({
+      kind: "Documento",
+      label: d.tipo,
+      meta: d.truck_id ? (truckById.get(d.truck_id)?.patente ?? "—") : (driverById.get(d.driver_id ?? "")?.nombre ?? "—"),
+      status: documentStatus(d),
+    }))
     .filter((x) => x.status.level !== "ok");
   const maintAlerts = (maintenance ?? [])
     .map((m) => ({ kind: "Mantención", label: m.tipo, meta: truckById.get(m.truck_id)?.patente ?? "—", status: maintenanceStatus(m, truckById.get(m.truck_id)) }))

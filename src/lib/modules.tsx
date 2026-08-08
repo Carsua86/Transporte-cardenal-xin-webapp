@@ -8,7 +8,10 @@ export const REGIONES_CL = [
   "O'Higgins", "Maule", "Ñuble", "Biobío", "La Araucanía", "Los Ríos", "Los Lagos", "Aysén", "Magallanes",
 ];
 export const LICENSE_CATS = ["A1", "A2", "A3", "A4", "A5", "B", "C", "D"];
-export const DOCUMENT_TYPES = ["Permiso de Circulación", "Seguro Obligatorio (SOAP)", "Revisión Técnica", "Seguro Adicional", "Otro"];
+export const DOCUMENT_TYPES = [
+  "Permiso de Circulación", "Seguro Obligatorio (SOAP)", "Revisión Técnica", "Seguro Adicional",
+  "Cédula de Identidad", "Certificado de Antecedentes", "Examen Psicotécnico", "Otro",
+];
 export const MAINTENANCE_TYPES = ["Preventiva", "Cambio de aceite", "Neumáticos", "Frenos", "Correctiva", "Revisión general", "Otro"];
 export const GASTO_CATEGORIAS = ["Previred", "IVA", "Sueldo / Pago Chofer", "Colación (oficina)", "Seguro", "Permiso", "Combustible (otro)", "Otro"];
 export const CENTRO_COSTO = ["Administración", "Flota", "Operación"];
@@ -385,19 +388,25 @@ export const MODULES: Record<string, ModuleDef> = {
     singularLabel: "documento",
     orderBy: { column: "fecha_vencimiento", ascending: true },
     fields: [
-      { key: "truck_id", label: "Camión", type: "select", required: true, options: (ctx) => ctx.trucks },
+      { key: "truck_id", label: "Camión (si es documento del vehículo)", type: "select", allowEmpty: true, options: (ctx) => ctx.trucks },
+      { key: "driver_id", label: "Conductor (si es documento de la persona)", type: "select", allowEmpty: true, options: (ctx) => ctx.drivers },
       { key: "tipo", label: "Tipo de documento", type: "select", required: true, options: DOCUMENT_TYPES },
       { key: "fecha_vencimiento", label: "Vencimiento", type: "date", required: true },
       { key: "notas", label: "Notas", type: "textarea" },
       { key: "archivo_path", label: "Foto o archivo del documento", type: "file", accept: "image/*,.pdf" },
+      { key: "estado", label: "Estado", type: "select", options: ["Vigente", "Regularizado"] },
     ],
     columns: [
-      { label: "Camión", render: (r, ctx) => truckLabel(ctx, r.truck_id) },
+      {
+        label: "Camión / Conductor",
+        render: (r, ctx) => (r.truck_id ? truckLabel(ctx, r.truck_id) : r.driver_id ? driverName(ctx, r.driver_id) : "—"),
+      },
       { label: "Documento", render: (r) => r.tipo || "—" },
       { label: "Vencimiento", render: (r) => fmtDate(r.fecha_vencimiento) },
       {
         label: "Estado",
         render: (r) => {
+          if (r.estado === "Regularizado") return <Badge level="ok" text="Regularizado" />;
           const d = daysUntil(r.fecha_vencimiento);
           if (d === null) return "—";
           const lvl = d < 0 ? "danger" : d <= 30 ? "warn" : "ok";

@@ -205,6 +205,7 @@ export function expiryStatus(dateStr: string | null | undefined, warnDays: numbe
 }
 
 export function documentStatus(rec: FleetDocument) {
+  if (rec.estado === "Regularizado") return { level: "ok" as const, text: "Regularizado" };
   return expiryStatus(rec.fecha_vencimiento, 30);
 }
 

@@ -109,11 +109,13 @@ export type Fuel = Timestamps & {
 
 export type FleetDocument = Timestamps & {
   id: string;
-  truck_id: string;
+  truck_id: string | null;
+  driver_id: string | null;
   tipo: string;
   fecha_vencimiento: string;
   notas: string | null;
   archivo_path: string | null;
+  estado: "Vigente" | "Regularizado";
 };
 
 export type Gasto = Timestamps & {
