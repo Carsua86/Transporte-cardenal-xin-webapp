@@ -6,10 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 export async function addPayment(invoiceId: string, formData: FormData) {
   const fecha = String(formData.get("fecha") || "");
   const monto = Number(formData.get("monto") || 0);
+  const tipo = String(formData.get("tipo") || "Abono");
   if (!fecha || !monto) return { error: "Fecha y monto son obligatorios." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("invoice_payments").insert({ invoice_id: invoiceId, fecha, monto });
+  const { error } = await supabase.from("invoice_payments").insert({ invoice_id: invoiceId, fecha, monto, tipo });
   if (error) return { error: error.message };
 
   revalidatePath("/invoices");

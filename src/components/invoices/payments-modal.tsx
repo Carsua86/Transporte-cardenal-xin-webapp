@@ -36,17 +36,24 @@ export function PaymentsModal({
             <span className="text-right font-mono">{fmtMoney(t.total)}</span>
             <span className="text-neutral-500">Abonado</span>
             <span className="text-right font-mono">{fmtMoney(t.abonado)}</span>
+            <span className="text-neutral-500">Otras deducciones</span>
+            <span className="text-right font-mono">{fmtMoney(t.descuentos)}</span>
             <span className="font-medium text-neutral-700">Saldo pendiente</span>
             <span className="text-right font-mono font-semibold text-brand-700">{fmtMoney(Math.max(t.saldo, 0))}</span>
           </div>
 
           {payments.length > 0 && (
             <div>
-              <h3 className="mb-1 text-sm font-medium text-neutral-700">Abonos registrados</h3>
+              <h3 className="mb-1 text-sm font-medium text-neutral-700">Movimientos registrados</h3>
               <ul className="flex flex-col gap-1">
                 {payments.map((p) => (
                   <li key={p.id} className="flex items-center justify-between text-sm">
-                    <span>{fmtDate(p.fecha)} — {fmtMoney(p.monto)}</span>
+                    <span>
+                      {fmtDate(p.fecha)} — {fmtMoney(p.monto)}{" "}
+                      <span className={p.tipo === "Descuento" ? "text-amber-600" : "text-emerald-700"}>
+                        ({p.tipo === "Descuento" ? "Descuento" : "Abono"})
+                      </span>
+                    </span>
                     <button
                       type="button"
                       disabled={pending}
@@ -62,7 +69,7 @@ export function PaymentsModal({
           )}
 
           <form
-            className="flex items-end gap-2"
+            className="flex flex-wrap items-end gap-2"
             action={(formData) => startTransition(async () => { await addPayment(invoice.id, formData); })}
           >
             <div className="flex flex-col gap-1">
@@ -71,7 +78,14 @@ export function PaymentsModal({
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-neutral-600" htmlFor="monto">Monto</label>
-              <input id="monto" name="monto" type="number" step="any" required className="w-32 rounded-xl border border-neutral-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+              <input id="monto" name="monto" type="number" step="any" required className="w-28 rounded-xl border border-neutral-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-neutral-600" htmlFor="tipo">Tipo</label>
+              <select id="tipo" name="tipo" defaultValue="Abono" className="rounded-xl border border-neutral-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100">
+                <option value="Abono">Abono</option>
+                <option value="Descuento">Descuento</option>
+              </select>
             </div>
             <button
               type="submit"

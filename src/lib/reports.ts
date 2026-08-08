@@ -90,6 +90,52 @@ function withIvaTotal<T extends { neto: number }>(x: T) {
   return { ...x, iva: x.neto * 0.19, total: x.neto * 1.19 };
 }
 
+export function aggregateVariableCostsByTruckMonth(trucks: Truck[], trips: Trip[], fuel: Fuel[]) {
+  const key = (truckId: string, month: string) => `${truckId}||${month}`;
+  const rowsMap = new Map<string, { truckId: string; month: string; combustible: number; peajes: number; viaticos: number }>();
+
+  const truckById = new Map(trucks.map((t) => [t.id, t]));
+
+  for (const f of fuel) {
+    if (!f.fecha) continue;
+    const month = monthOf(f.fecha);
+    const k = key(f.truck_id, month);
+    const row = rowsMap.get(k) ?? { truckId: f.truck_id, month, combustible: 0, peajes: 0, viaticos: 0 };
+    row.combustible += Number(f.costo_total || 0);
+    rowsMap.set(k, row);
+  }
+
+  for (const t of trips) {
+    if (!t.fecha) continue;
+    const month = monthOf(t.fecha);
+    const k = key(t.truck_id, month);
+    const row = rowsMap.get(k) ?? { truckId: t.truck_id, month, combustible: 0, peajes: 0, viaticos: 0 };
+    row.peajes += Number(t.peajes || 0);
+    row.viaticos += Number(t.viaticos || 0);
+    rowsMap.set(k, row);
+  }
+
+  const rows = Array.from(rowsMap.values())
+    .map((r) => ({
+      ...r,
+      truckPatente: truckById.get(r.truckId)?.patente ?? "—",
+      total: r.combustible + r.peajes + r.viaticos,
+    }))
+    .sort((a, b) => (a.truckPatente.localeCompare(b.truckPatente) || b.month.localeCompare(a.month)));
+
+  const totals = rows.reduce(
+    (acc, r) => ({
+      combustible: acc.combustible + r.combustible,
+      peajes: acc.peajes + r.peajes,
+      viaticos: acc.viaticos + r.viaticos,
+      total: acc.total + r.total,
+    }),
+    { combustible: 0, peajes: 0, viaticos: 0, total: 0 },
+  );
+
+  return { rows, totals };
+}
+
 export function aggregateByVendedor(trips: Trip[], month: string) {
   const tripsM = trips.filter((t) => monthOf(t.fecha) === month);
 

@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { fmtMoney, fmtNum, fmtPct, todayStr } from "@/lib/format";
-import { aggregateAging, aggregateByVendedor, aggregatePorCamionCompleto, monthlyAggregate, uniqueMonths } from "@/lib/reports";
+import {
+  aggregateAging, aggregateByVendedor, aggregatePorCamionCompleto, aggregateVariableCostsByTruckMonth,
+  monthlyAggregate, uniqueMonths,
+} from "@/lib/reports";
 import type { InvoicePayment } from "@/lib/supabase/types";
 
 export default async function ReportesPage() {
@@ -24,6 +27,7 @@ export default async function ReportesPage() {
   const monthly = months.map((month) => monthlyAggregate(month, t, f, m, g));
 
   const porCamion = aggregatePorCamionCompleto(trucks ?? [], t, f, m, g);
+  const gastosVariables = aggregateVariableCostsByTruckMonth(trucks ?? [], t, f);
 
   const currentMonth = todayStr().slice(0, 7);
   const porVendedor = aggregateByVendedor(t, currentMonth);
@@ -124,6 +128,49 @@ export default async function ReportesPage() {
             <p className="text-xs text-neutral-500">Margen final — todos los camiones</p>
             <p className="mt-1 text-lg font-semibold">{fmtMoney(porCamion.margenFinalEmpresa)}</p>
           </div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-neutral-900">⛽🛣️🍽️ Combustible, peajes y viáticos por camión y mes</h2>
+          <p className="text-sm text-neutral-500">Combustible viene del módulo Combustible (incluye lo cargado desde Viajes); peajes y viáticos se suman directo de cada viaje.</p>
+        </div>
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <table className="min-w-full divide-y divide-neutral-200 text-sm">
+            <thead className="bg-brand-50/60">
+              <tr>
+                {["Camión", "Mes", "Combustible", "Peajes", "Viáticos", "Total"].map((h) => (
+                  <th key={h} className="px-3 py-2 text-left font-medium text-neutral-500">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {gastosVariables.rows.length === 0 ? (
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-neutral-400">Sin datos todavía.</td></tr>
+              ) : gastosVariables.rows.map((r) => (
+                <tr key={`${r.truckId}||${r.month}`}>
+                  <td className="px-3 py-2 font-semibold">{r.truckPatente}</td>
+                  <td className="px-3 py-2">{r.month}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(r.combustible)}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(r.peajes)}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(r.viaticos)}</td>
+                  <td className="px-3 py-2 font-mono font-semibold">{fmtMoney(r.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {gastosVariables.rows.length > 0 && (
+              <tfoot className="bg-neutral-50 font-semibold">
+                <tr>
+                  <td className="px-3 py-2" colSpan={2}>Total todos los camiones</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(gastosVariables.totals.combustible)}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(gastosVariables.totals.peajes)}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(gastosVariables.totals.viaticos)}</td>
+                  <td className="px-3 py-2 font-mono">{fmtMoney(gastosVariables.totals.total)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
         </div>
       </section>
 

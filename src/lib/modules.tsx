@@ -112,6 +112,16 @@ function clientLabel(ctx: ModuleContext, id: string | null) {
   return ctx.clientes.find((c) => c.value === id)?.label ?? "—";
 }
 
+function tripGastosTotales(r: Row) {
+  return (
+    Number(r.peajes || 0) +
+    Number(r.viaticos || 0) +
+    Number(r.colacion || 0) +
+    Number(r.otros || 0) +
+    Number(r.fuel?.costo_total || 0)
+  );
+}
+
 export const MODULES: Record<string, ModuleDef> = {
   trucks: {
     key: "trucks",
@@ -264,6 +274,7 @@ export const MODULES: Record<string, ModuleDef> = {
       { key: "viaticos", label: "Viáticos", type: "number" },
       { key: "colacion", label: "Colación", type: "number" },
       { key: "otros", label: "Otros gastos", type: "number" },
+      { key: "otros_descripcion", label: "¿A qué corresponden los otros gastos?", type: "text" },
       { key: "km_inicio", label: "Km inicio", type: "number" },
       { key: "km_fin", label: "Km fin", type: "number" },
     ],
@@ -276,19 +287,20 @@ export const MODULES: Record<string, ModuleDef> = {
       { label: "Destino", render: (r) => [r.destino, r.comuna_destino, r.region_destino].filter(Boolean).join(", ") || "—" },
       { label: "M2 / M3", render: (r) => `${r.mt2 ?? "—"} / ${r.mt3 ?? "—"}` },
       { label: "Flete neto", render: (r) => <span className="font-mono">{fmtMoney(r.monto_flete)}</span> },
+      { label: "IVA", render: (r) => <span className="font-mono">{fmtMoney(Number(r.monto_flete || 0) * 0.19)}</span> },
+      { label: "Total c/IVA", render: (r) => <span className="font-mono">{fmtMoney(Number(r.monto_flete || 0) * 1.19)}</span> },
       {
-        label: "Costo directo",
+        label: "Gastos",
         render: (r) => {
-          const costo = Number(r.peajes || 0) + Number(r.viaticos || 0) + Number(r.colacion || 0) + Number(r.otros || 0);
-          return <span className="font-mono">{fmtMoney(costo)}</span>;
+          const gastos = tripGastosTotales(r);
+          return <span className="font-mono">{fmtMoney(gastos)}</span>;
         },
       },
       {
-        label: "Ganancia",
+        label: "Utilidad",
         render: (r) => {
-          const costo = Number(r.peajes || 0) + Number(r.viaticos || 0) + Number(r.colacion || 0) + Number(r.otros || 0);
-          const g = Number(r.monto_flete || 0) - costo;
-          return <span className={`font-mono ${g >= 0 ? "text-emerald-700" : "text-red-700"}`}>{fmtMoney(g)}</span>;
+          const utilidad = Number(r.monto_flete || 0) - tripGastosTotales(r);
+          return <span className={`font-mono font-semibold ${utilidad >= 0 ? "text-emerald-700" : "text-red-700"}`}>{fmtMoney(utilidad)}</span>;
         },
       },
     ],
@@ -344,12 +356,14 @@ export const MODULES: Record<string, ModuleDef> = {
       { key: "litros", label: "Litros", type: "number" },
       { key: "costo_total", label: "Costo total", type: "number", required: true },
       { key: "km_al_momento", label: "Km al momento", type: "number" },
+      { key: "numero_guia_factura", label: "N° Guía / Factura", type: "text" },
+      { key: "direccion", label: "Dirección de carga", type: "text" },
+      { key: "region", label: "Región", type: "select", options: REGIONES_CL },
     ],
     columns: [
       { label: "Camión", render: (r, ctx) => truckLabel(ctx, r.truck_id) },
       { label: "Fecha", render: (r) => fmtDate(r.fecha) },
       { label: "Litros", render: (r) => <span className="font-mono">{fmtNum(r.litros)}</span> },
-      { label: "Costo total", render: (r) => <span className="font-mono">{fmtMoney(r.costo_total)}</span> },
       {
         label: "$/Litro",
         render: (r) => {
@@ -357,6 +371,9 @@ export const MODULES: Record<string, ModuleDef> = {
           return <span className="font-mono">{fmtMoney(v)}</span>;
         },
       },
+      { label: "Total cargado", render: (r) => <span className="font-mono font-semibold">{fmtMoney(r.costo_total)}</span> },
+      { label: "Guía/Factura", render: (r) => r.numero_guia_factura || "—" },
+      { label: "Dirección", render: (r) => [r.direccion, r.region].filter(Boolean).join(", ") || "—" },
     ],
   },
 

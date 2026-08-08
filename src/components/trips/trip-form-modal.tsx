@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { Option, Row } from "@/lib/modules";
 import type { Cliente } from "@/lib/supabase/types";
-import { upsertRecord } from "@/lib/actions/records";
+import { upsertTrip } from "@/lib/actions/trips";
 import { fmtMoney } from "@/lib/format";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/lib/ui";
 
@@ -21,7 +21,7 @@ export function TripFormModal({
   drivers: Option[];
   clientes: Cliente[];
 }) {
-  const action = upsertRecord.bind(null, "trips", initial?.id ?? null);
+  const action = upsertTrip.bind(null, initial?.id ?? null);
   const [state, formAction, pending] = useActionState(
     async (_prev: { error: string | null }, formData: FormData) => action(formData),
     { error: null },
@@ -33,6 +33,11 @@ export function TripFormModal({
   const [regionDestino, setRegionDestino] = useState(initial?.region_destino ?? "");
   const [vendedor, setVendedor] = useState(initial?.vendedor ?? "");
   const [montoFlete, setMontoFlete] = useState(initial?.monto_flete ?? "");
+  const [peajes, setPeajes] = useState(initial?.peajes ?? "");
+  const [viaticos, setViaticos] = useState(initial?.viaticos ?? "");
+  const [colacion, setColacion] = useState(initial?.colacion ?? "");
+  const [otros, setOtros] = useState(initial?.otros ?? "");
+  const [combustibleMonto, setCombustibleMonto] = useState(initial?.fuel?.costo_total ?? "");
   const [clienteQuery, setClienteQuery] = useState(() => {
     const c = clientes.find((c) => c.id === initial?.cliente_id);
     return c ? `${c.rut} — ${c.razon_social}` : "";
@@ -66,6 +71,9 @@ export function TripFormModal({
     : clientes;
 
   const montoFleteNum = Number(montoFlete || 0);
+  const gastosTotales =
+    Number(peajes || 0) + Number(viaticos || 0) + Number(colacion || 0) + Number(otros || 0) + Number(combustibleMonto || 0);
+  const utilidad = montoFleteNum - gastosTotales;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4 backdrop-blur-sm">
@@ -207,29 +215,50 @@ export function TripFormModal({
                 onChange={(e) => setMontoFlete(e.target.value)}
                 className={inputClass}
               />
-              <p className="text-xs text-neutral-400">
-                IVA: {fmtMoney(montoFleteNum * 0.19)} · Total: {fmtMoney(montoFleteNum * 1.19)}
-              </p>
             </div>
 
             <div className="flex flex-col gap-1">
               <label className={labelClass} htmlFor="f_peajes">Peajes</label>
-              <input id="f_peajes" name="peajes" type="number" step="any" defaultValue={initial?.peajes ?? ""} className={inputClass} />
+              <input id="f_peajes" name="peajes" type="number" step="any" value={peajes} onChange={(e) => setPeajes(e.target.value)} className={inputClass} />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className={labelClass} htmlFor="f_viaticos">Viáticos</label>
-              <input id="f_viaticos" name="viaticos" type="number" step="any" defaultValue={initial?.viaticos ?? ""} className={inputClass} />
+              <input id="f_viaticos" name="viaticos" type="number" step="any" value={viaticos} onChange={(e) => setViaticos(e.target.value)} className={inputClass} />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className={labelClass} htmlFor="f_colacion">Colación</label>
-              <input id="f_colacion" name="colacion" type="number" step="any" defaultValue={initial?.colacion ?? ""} className={inputClass} />
+              <input id="f_colacion" name="colacion" type="number" step="any" value={colacion} onChange={(e) => setColacion(e.target.value)} className={inputClass} />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className={labelClass} htmlFor="f_otros">Otros gastos</label>
-              <input id="f_otros" name="otros" type="number" step="any" defaultValue={initial?.otros ?? ""} className={inputClass} />
+              <input id="f_otros" name="otros" type="number" step="any" value={otros} onChange={(e) => setOtros(e.target.value)} className={inputClass} />
+            </div>
+
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <label className={labelClass} htmlFor="f_otros_descripcion">¿A qué corresponden los otros gastos?</label>
+              <input id="f_otros_descripcion" name="otros_descripcion" type="text" placeholder="Ej. estacionamiento, lavado, multa…" defaultValue={initial?.otros_descripcion ?? ""} className={inputClass} />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={labelClass} htmlFor="f_combustible_litros">Combustible cargado (litros)</label>
+              <input id="f_combustible_litros" name="combustible_litros" type="number" step="any" defaultValue={initial?.fuel?.litros ?? ""} className={inputClass} />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={labelClass} htmlFor="f_combustible_monto">Monto pagado por combustible</label>
+              <input
+                id="f_combustible_monto"
+                name="combustible_monto"
+                type="number"
+                step="any"
+                value={combustibleMonto}
+                onChange={(e) => setCombustibleMonto(e.target.value)}
+                className={inputClass}
+              />
+              <p className="text-xs text-neutral-400">Se suma solo al registro de Combustible del camión.</p>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -241,6 +270,21 @@ export function TripFormModal({
               <label className={labelClass} htmlFor="f_km_fin">Km fin</label>
               <input id="f_km_fin" name="km_fin" type="number" step="any" defaultValue={initial?.km_fin ?? ""} className={inputClass} />
             </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-y-1 rounded-xl bg-brand-50/60 p-3 text-sm sm:grid-cols-4">
+            <span className="text-neutral-500">Flete neto</span>
+            <span className="text-right font-mono">{fmtMoney(montoFleteNum)}</span>
+            <span className="text-neutral-500">IVA</span>
+            <span className="text-right font-mono">{fmtMoney(montoFleteNum * 0.19)}</span>
+            <span className="text-neutral-500">Total c/IVA</span>
+            <span className="text-right font-mono">{fmtMoney(montoFleteNum * 1.19)}</span>
+            <span className="text-neutral-500">Gastos del viaje</span>
+            <span className="text-right font-mono">-{fmtMoney(gastosTotales)}</span>
+            <span className="col-span-2 font-medium text-neutral-700 sm:col-span-1">Utilidad estimada</span>
+            <span className={`text-right font-mono text-base font-semibold sm:col-span-1 ${utilidad >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+              {fmtMoney(utilidad)}
+            </span>
           </div>
 
           {state.error && <p className="mt-4 text-sm text-red-600">{state.error}</p>}

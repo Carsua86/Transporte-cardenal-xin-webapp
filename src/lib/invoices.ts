@@ -5,9 +5,10 @@ export function invoiceTotals(inv: Invoice, payments: InvoicePayment[]) {
   const neto = Number(inv.neto || 0);
   const iva = neto * 0.19;
   const total = neto + iva;
-  const abonado = payments.reduce((s, a) => s + Number(a.monto || 0), 0);
-  const saldo = total - abonado;
-  return { neto, iva, total, abonado, saldo };
+  const abonado = payments.filter((a) => a.tipo !== "Descuento").reduce((s, a) => s + Number(a.monto || 0), 0);
+  const descuentos = payments.filter((a) => a.tipo === "Descuento").reduce((s, a) => s + Number(a.monto || 0), 0);
+  const saldo = total - abonado - descuentos;
+  return { neto, iva, total, abonado, descuentos, saldo };
 }
 
 export type AgingBucket = "Pagada" | "Vigente" | "1-30 días" | "31-45 días" | "46-60 días" | "61-90 días" | "+90 días";

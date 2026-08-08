@@ -18,7 +18,7 @@ export default async function TripsPage({
   const supabase = await createClient();
   const [ctx, { data: rows, error }, { data: clientes }] = await Promise.all([
     getModuleContext(),
-    supabase.from("trips").select("*").order("fecha", { ascending: false }),
+    supabase.from("trips").select("*, fuel:fuel_id(litros, costo_total)").order("fecha", { ascending: false }),
     supabase.from("clientes").select("*").order("razon_social") as unknown as Promise<{ data: Cliente[] | null }>,
   ]);
 

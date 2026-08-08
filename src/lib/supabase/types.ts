@@ -74,8 +74,11 @@ export type Trip = Timestamps & {
   viaticos: number;
   colacion: number;
   otros: number;
+  otros_descripcion: string | null;
   km_inicio: number | null;
   km_fin: number | null;
+  fuel_id: string | null;
+  fuel?: { litros: number | null; costo_total: number } | null;
 };
 
 export type Maintenance = Timestamps & {
@@ -99,6 +102,9 @@ export type Fuel = Timestamps & {
   litros: number | null;
   costo_total: number;
   km_al_momento: number | null;
+  numero_guia_factura: string | null;
+  direccion: string | null;
+  region: string | null;
 };
 
 export type FleetDocument = Timestamps & {
@@ -134,6 +140,7 @@ export type InvoicePayment = {
   invoice_id: string;
   fecha: string;
   monto: number;
+  tipo: "Abono" | "Descuento";
   created_at: string;
 };
 
