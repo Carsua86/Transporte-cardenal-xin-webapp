@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/modules";
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex w-60 shrink-0 flex-col gap-6 border-r border-navy-800 bg-navy-900 px-3 py-5">
+    <nav className="flex h-full w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r border-navy-800 bg-navy-900 px-3 py-5 lg:w-60">
       <div className="flex items-center gap-2.5 px-2">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-lg shadow-sm ring-1 ring-gold-400/50">
           🐦
@@ -32,6 +32,7 @@ export function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                onClick={onNavigate}
                 className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition ${
                   active
                     ? "bg-brand-600 text-white shadow-sm"
