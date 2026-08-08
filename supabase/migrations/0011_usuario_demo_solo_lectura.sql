@@ -25,6 +25,11 @@ begin
     'invoices','invoice_payments','clientes','notas','ajustes_ipc','prestamos'
   ]
   loop
+    if to_regclass('public.' || t) is null then
+      raise notice 'Tabla % no existe, se omite', t;
+      continue;
+    end if;
+
     execute format('drop policy if exists "authenticated_full_access" on %I', t);
 
     execute format(
