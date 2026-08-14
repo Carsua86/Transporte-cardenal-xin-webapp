@@ -9,12 +9,14 @@ export async function upsertTrip(id: string | null, formData: FormData) {
   const supabase = await createClient();
   const mod = MODULES.trips;
 
+  const zeroDefaultFields = new Set(["monto_flete", "peajes", "viaticos", "colacion", "otros"]);
+
   const payload: Row = {};
   for (const field of mod.fields) {
     const raw = formData.get(field.key);
     const value = typeof raw === "string" ? raw.trim() : raw;
     if (value === "" || value === null) {
-      payload[field.key] = null;
+      payload[field.key] = zeroDefaultFields.has(field.key) ? 0 : null;
       continue;
     }
     payload[field.key] = field.type === "number" ? Number(value) : value;
