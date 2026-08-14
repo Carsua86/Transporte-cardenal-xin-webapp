@@ -81,8 +81,8 @@ export default async function DashboardPage() {
   const noteAlerts = (notas ?? [])
     .map((n) => ({ kind: "Nota", label: n.texto.length > 40 ? `${n.texto.slice(0, 40)}…` : n.texto, meta: "", status: noteStatus(n) }))
     .filter((x): x is typeof x & { status: NonNullable<typeof x.status> } => x.status !== null && x.status.level !== "ok");
-  const ivaAlert = { kind: "Impuestos", label: "Pago de IVA (F29)", meta: "", status: taxDeadlineStatus(IVA_DUE_DAY) };
-  const previredAlert = { kind: "Impuestos", label: "Pago de Previred", meta: "", status: taxDeadlineStatus(PREVIRED_DUE_DAY) };
+  const ivaAlert = { kind: "Impuestos", label: "Pago de IVA (F29)", meta: "", status: taxDeadlineStatus(IVA_DUE_DAY, "IVA", gastos ?? []) };
+  const previredAlert = { kind: "Impuestos", label: "Pago de Previred", meta: "", status: taxDeadlineStatus(PREVIRED_DUE_DAY, "Previred", gastos ?? []) };
   const taxAlerts = [ivaAlert, previredAlert].filter((x) => x.status.level !== "ok");
   const ipcStatus = ipcAdjustmentStatus(ajustesIpc ?? []);
   const ipcAlerts = ipcStatus.level !== "ok" ? [{ kind: "Sueldos", label: "Reajuste anual IPC", meta: "", status: ipcStatus }] : [];

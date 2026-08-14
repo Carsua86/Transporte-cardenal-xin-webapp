@@ -27,6 +27,10 @@ export default async function TripsPage({
   const editing = form && form !== "new" ? rowsData.find((r) => r.id === form) ?? null : null;
   const showModal = form === "new" || Boolean(editing);
 
+  const otrosClientesIniciales = editing
+    ? (await supabase.from("trip_clientes").select("*").eq("trip_id", editing.id)).data ?? []
+    : [];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -57,6 +61,7 @@ export default async function TripsPage({
           trucks={ctx.trucks}
           drivers={ctx.drivers}
           clientes={clientes ?? []}
+          otrosClientesIniciales={otrosClientesIniciales}
         />
       )}
     </div>

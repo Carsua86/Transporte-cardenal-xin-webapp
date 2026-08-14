@@ -81,6 +81,16 @@ export type Trip = Timestamps & {
   fuel?: { litros: number | null; costo_total: number } | null;
 };
 
+export type TripCliente = {
+  id: string;
+  trip_id: string;
+  cliente_id: string;
+  numero_guia_factura: string | null;
+  mt2: number | null;
+  mt3: number | null;
+  created_at: string;
+};
+
 export type Maintenance = Timestamps & {
   id: string;
   truck_id: string;

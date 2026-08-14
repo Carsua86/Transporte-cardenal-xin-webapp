@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { Option, Row } from "@/lib/modules";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, TripCliente } from "@/lib/supabase/types";
 import { upsertTrip } from "@/lib/actions/trips";
 import { fmtMoney } from "@/lib/format";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/lib/ui";
+
+type OtroClienteRow = { clienteId: string; numeroGuia: string; mt2: string; mt3: string };
 
 export function TripFormModal({
   closeHref,
@@ -14,12 +16,14 @@ export function TripFormModal({
   trucks,
   drivers,
   clientes,
+  otrosClientesIniciales,
 }: {
   closeHref: string;
   initial: Row | null;
   trucks: Option[];
   drivers: Option[];
   clientes: Cliente[];
+  otrosClientesIniciales?: TripCliente[];
 }) {
   const action = upsertTrip.bind(null, initial?.id ?? null);
   const [state, formAction, pending] = useActionState(
@@ -44,6 +48,26 @@ export function TripFormModal({
   });
   const [showClienteList, setShowClienteList] = useState(false);
   const [clienteError, setClienteError] = useState(false);
+  const [otrosClientes, setOtrosClientes] = useState<OtroClienteRow[]>(() =>
+    (otrosClientesIniciales ?? []).map((c) => ({
+      clienteId: c.cliente_id,
+      numeroGuia: c.numero_guia_factura ?? "",
+      mt2: c.mt2 != null ? String(c.mt2) : "",
+      mt3: c.mt3 != null ? String(c.mt3) : "",
+    })),
+  );
+
+  function addOtroCliente() {
+    setOtrosClientes((rows) => [...rows, { clienteId: "", numeroGuia: "", mt2: "", mt3: "" }]);
+  }
+
+  function updateOtroCliente(index: number, patch: Partial<OtroClienteRow>) {
+    setOtrosClientes((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  function removeOtroCliente(index: number) {
+    setOtrosClientes((rows) => rows.filter((_, i) => i !== index));
+  }
 
   function handleClienteChange(id: string) {
     setClienteId(id);
@@ -270,6 +294,63 @@ export function TripFormModal({
               <label className={labelClass} htmlFor="f_km_fin">Km fin</label>
               <input id="f_km_fin" name="km_fin" type="number" step="any" defaultValue={initial?.km_fin ?? ""} className={inputClass} />
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 rounded-xl border border-neutral-200 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-700">Otros clientes en este viaje</p>
+                <p className="text-xs text-neutral-400">Referencial — sin monto. El viaje solo cobra el flete del cliente principal.</p>
+              </div>
+              <button type="button" onClick={addOtroCliente} className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50">
+                + Agregar cliente
+              </button>
+            </div>
+            {otrosClientes.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {otrosClientes.map((row, i) => (
+                  <div key={i} className="grid grid-cols-1 gap-2 rounded-lg bg-neutral-50 p-2 sm:grid-cols-[1fr_1fr_5rem_5rem_auto]">
+                    <select
+                      value={row.clienteId}
+                      onChange={(e) => updateOtroCliente(i, { clienteId: e.target.value })}
+                      className={inputClass}
+                    >
+                      <option value="">— Selecciona cliente —</option>
+                      {clientes.map((c) => (
+                        <option key={c.id} value={c.id}>{c.rut} — {c.razon_social}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="N° Guía / Factura"
+                      value={row.numeroGuia}
+                      onChange={(e) => updateOtroCliente(i, { numeroGuia: e.target.value })}
+                      className={inputClass}
+                    />
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="M2"
+                      value={row.mt2}
+                      onChange={(e) => updateOtroCliente(i, { mt2: e.target.value })}
+                      className={inputClass}
+                    />
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="M3"
+                      value={row.mt3}
+                      onChange={(e) => updateOtroCliente(i, { mt3: e.target.value })}
+                      className={inputClass}
+                    />
+                    <button type="button" onClick={() => removeOtroCliente(i)} className="text-neutral-400 hover:text-red-600" title="Quitar">
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input type="hidden" name="otros_clientes_json" value={JSON.stringify(otrosClientes)} />
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-y-1 rounded-xl bg-brand-50/60 p-3 text-sm sm:grid-cols-4">

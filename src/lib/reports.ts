@@ -239,8 +239,11 @@ export function nextMonthlyDeadline(dueDay: number) {
   return `${year}-${mm}-${dd}`;
 }
 
-export function taxDeadlineStatus(dueDay: number, warnDays = 5) {
+export function taxDeadlineStatus(dueDay: number, categoria: string, gastos: Gasto[], warnDays = 5) {
   const date = nextMonthlyDeadline(dueDay);
+  const targetMonth = date.slice(0, 7);
+  const pagado = gastos.some((g) => g.categoria === categoria && monthOf(g.fecha) === targetMonth);
+  if (pagado) return { level: "ok" as const, text: "Pagado", date };
   return { ...expiryStatus(date, warnDays), date };
 }
 

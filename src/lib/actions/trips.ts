@@ -49,11 +49,43 @@ export async function upsertTrip(id: string | null, formData: FormData) {
     payload.fuel_id = fuelId;
   }
 
-  const { error } = id
-    ? await supabase.from("trips").update(payload).eq("id", id)
-    : await supabase.from("trips").insert(payload);
+  let tripId = id;
+  if (id) {
+    const { error } = await supabase.from("trips").update(payload).eq("id", id);
+    if (error) return { error: friendlyActionError(error.message) };
+  } else {
+    const { data: newTrip, error } = await supabase.from("trips").insert(payload).select("id").single();
+    if (error) return { error: friendlyActionError(error.message) };
+    tripId = newTrip?.id ?? null;
+  }
 
-  if (error) return { error: friendlyActionError(error.message) };
+  const otrosClientesRaw = formData.get("otros_clientes_json");
+  if (tripId && typeof otrosClientesRaw === "string") {
+    let otrosClientes: Array<{ clienteId: string; numeroGuia: string; mt2: string; mt3: string }> = [];
+    try {
+      otrosClientes = JSON.parse(otrosClientesRaw);
+    } catch {
+      otrosClientes = [];
+    }
+
+    const { error: deleteError } = await supabase.from("trip_clientes").delete().eq("trip_id", tripId);
+    if (deleteError) return { error: friendlyActionError(deleteError.message) };
+
+    const rows = otrosClientes
+      .filter((c) => c.clienteId)
+      .map((c) => ({
+        trip_id: tripId,
+        cliente_id: c.clienteId,
+        numero_guia_factura: c.numeroGuia.trim() || null,
+        mt2: c.mt2 ? Number(c.mt2) : null,
+        mt3: c.mt3 ? Number(c.mt3) : null,
+      }));
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabase.from("trip_clientes").insert(rows);
+      if (insertError) return { error: friendlyActionError(insertError.message) };
+    }
+  }
 
   revalidatePath("/trips");
   revalidatePath("/fuel");
