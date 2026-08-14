@@ -287,6 +287,15 @@ export const MODULES: Record<string, ModuleDef> = {
       { label: "Conductor", render: (r, ctx) => driverName(ctx, r.driver_id) },
       { label: "Cliente", render: (r, ctx) => clientLabel(ctx, r.cliente_id) },
       { label: "N° Guía/Factura", render: (r) => r.numero_guia_factura || "—" },
+      {
+        label: "Clientes extra",
+        render: (r) =>
+          r._extrasCount > 0 ? (
+            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">+{r._extrasCount}</span>
+          ) : (
+            <span className="text-neutral-300">—</span>
+          ),
+      },
       { label: "Destino", render: (r) => [r.destino, r.comuna_destino, r.region_destino].filter(Boolean).join(", ") || "—" },
       { label: "M2 / M3", render: (r) => `${r.mt2 ?? "—"} / ${r.mt3 ?? "—"}` },
       { label: "Flete neto", render: (r) => <span className="font-mono">{fmtMoney(r.monto_flete)}</span> },
