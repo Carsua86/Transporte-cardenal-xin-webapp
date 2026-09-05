@@ -4,19 +4,19 @@ import { MODULES, resolveFields, buildFileColumns, getRowFileUrls } from "@/lib/
 import { getModuleContext } from "@/lib/data/context";
 import { createClient } from "@/lib/supabase/server";
 import { DataTable } from "@/components/crud/data-table";
-import { SearchableDataTable } from "@/components/crud/searchable-data-table";
 import { RecordFormModal } from "@/components/crud/record-form-modal";
-import { btnPrimary } from "@/lib/ui";
+import { normalizeRut } from "@/lib/rut";
+import { btnPrimary, inputClass } from "@/lib/ui";
 
 export default async function ModulePage({
   params,
   searchParams,
 }: {
   params: Promise<{ modulo: string }>;
-  searchParams: Promise<{ form?: string }>;
+  searchParams: Promise<{ form?: string; q?: string }>;
 }) {
   const { modulo } = await params;
-  const { form } = await searchParams;
+  const { form, q = "" } = await searchParams;
 
   const mod = MODULES[modulo];
   if (!mod) notFound();
@@ -27,9 +27,21 @@ export default async function ModulePage({
     supabase.from(mod.table).select("*").order(mod.orderBy.column, { ascending: mod.orderBy.ascending }),
   ]);
 
-  const rowsData = rows ?? [];
+  const allRowsData = rows ?? [];
   const basePath = `/${modulo}`;
-  const editing = form && form !== "new" ? rowsData.find((r) => r.id === form) ?? null : null;
+  const hasRutField = mod.fields.some((f) => f.key === "rut");
+
+  const query = q.trim().toLowerCase();
+  const normalizedQuery = normalizeRut(q);
+  const rowsData =
+    hasRutField && query
+      ? allRowsData.filter((r) => {
+          const label = String(r.razon_social ?? r.nombre ?? "").toLowerCase();
+          const rut = String(r.rut ?? "");
+          return label.includes(query) || (normalizedQuery !== "" && normalizeRut(rut).includes(normalizedQuery));
+        })
+      : allRowsData;
+  const editing = form && form !== "new" ? allRowsData.find((r) => r.id === form) ?? null : null;
   const showModal = form === "new" || Boolean(editing);
 
   const [fileColumns, fileUrls] = await Promise.all([
@@ -37,11 +49,10 @@ export default async function ModulePage({
     getRowFileUrls(supabase, mod.fields, editing),
   ]);
 
-  const rutField = mod.fields.find((f) => f.key === "rut");
-  const rutCheck = rutField
+  const rutCheck = hasRutField
     ? {
         key: "rut",
-        existing: rowsData
+        existing: allRowsData
           .filter((r) => r.rut)
           .map((r) => ({ id: r.id, rut: String(r.rut), label: String(r.razon_social ?? r.nombre ?? r.rut) })),
       }
@@ -59,27 +70,29 @@ export default async function ModulePage({
         </Link>
       </div>
 
+      {hasRutField && (
+        <form method="get" className="relative max-w-sm">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
+          <input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar por RUT o nombre…"
+            className={`${inputClass} w-full pl-9`}
+          />
+        </form>
+      )}
+
       {error && <p className="text-sm text-red-600">Error cargando datos: {error.message}</p>}
 
-      {rutField ? (
-        <SearchableDataTable
-          moduleKey={modulo}
-          singularLabel={mod.singularLabel}
-          columns={[...mod.columns, ...fileColumns]}
-          rows={rowsData}
-          ctx={ctx}
-          basePath={basePath}
-        />
-      ) : (
-        <DataTable
-          moduleKey={modulo}
-          singularLabel={mod.singularLabel}
-          columns={[...mod.columns, ...fileColumns]}
-          rows={rowsData}
-          ctx={ctx}
-          basePath={basePath}
-        />
-      )}
+      <DataTable
+        moduleKey={modulo}
+        singularLabel={mod.singularLabel}
+        columns={[...mod.columns, ...fileColumns]}
+        rows={rowsData}
+        ctx={ctx}
+        basePath={basePath}
+      />
 
       {showModal && (
         <RecordFormModal
