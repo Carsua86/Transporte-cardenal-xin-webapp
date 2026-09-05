@@ -20,7 +20,7 @@ export default async function TripsPage({
   let query = supabase
     .from("trips")
     .select("*, fuel:fuel_id(litros, costo_total), trip_clientes(count)")
-    .order("fecha", { ascending: false });
+    .order("fecha", { ascending: true });
   if (clienteId) query = query.eq("cliente_id", clienteId);
   if (desde) query = query.gte("fecha", desde);
   if (hasta) query = query.lte("fecha", hasta);

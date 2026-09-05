@@ -22,6 +22,28 @@ function tripMetrics(rows: Row[]) {
   );
 }
 
+function StatChip({
+  label,
+  value,
+  tone = "neutral",
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "good" | "bad";
+  compact?: boolean;
+}) {
+  const valueColor = tone === "good" ? "text-emerald-700" : tone === "bad" ? "text-red-700" : "text-neutral-800";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-neutral-200 ${compact ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-xs"}`}
+    >
+      <span className="text-neutral-400">{label}</span>
+      <span className={`font-mono font-semibold ${valueColor}`}>{value}</span>
+    </span>
+  );
+}
+
 export function TripsTable({
   columns,
   rows,
@@ -40,7 +62,7 @@ export function TripsTable({
     list.push(r);
     monthGroups.set(key, list);
   }
-  const orderedMonths = [...monthGroups.keys()].sort((a, b) => (a < b ? 1 : -1));
+  const orderedMonths = [...monthGroups.keys()].sort((a, b) => (a < b ? -1 : 1));
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -48,11 +70,11 @@ export function TripsTable({
         <thead className="bg-brand-50/60">
           <tr>
             {columns.map((c) => (
-              <th key={c.label} className="px-4 py-3 text-left font-semibold text-neutral-600">
+              <th key={c.label} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 {c.label}
               </th>
             ))}
-            <th className="px-4 py-3 text-right font-semibold text-neutral-600">Acciones</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-100">
@@ -81,60 +103,52 @@ export function TripsTable({
 
               return (
                 <Fragment key={monthKey}>
-                  <tr className="bg-neutral-100">
-                    <td colSpan={columns.length + 1} className="px-4 py-2 text-sm font-semibold text-neutral-700">
+                  <tr className="bg-gradient-to-r from-brand-700 to-brand-600">
+                    <td colSpan={columns.length + 1} className="px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span>
-                          📅 {monthKey === "Sin fecha" ? "Sin fecha" : fmtMonth(monthKey)}{" "}
-                          <span className="font-normal text-neutral-400">
-                            ({monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"})
+                        <span className="flex items-center gap-2 text-sm font-semibold text-white">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-base">📅</span>
+                          {monthKey === "Sin fecha" ? "Sin fecha" : fmtMonth(monthKey)}
+                          <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-normal text-white/90">
+                            {monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"}
                           </span>
                         </span>
-                        <span className="flex flex-wrap gap-4 font-normal text-neutral-500">
-                          <span>Flete neto: <span className="font-mono font-semibold text-neutral-700">{fmtMoney(monthTotals.flete)}</span></span>
-                          <span>Total c/IVA: <span className="font-mono font-semibold text-neutral-700">{fmtMoney(monthTotals.total)}</span></span>
-                          <span>Gastos: <span className="font-mono font-semibold text-neutral-700">{fmtMoney(monthTotals.gastos)}</span></span>
-                          <span>
-                            Utilidad:{" "}
-                            <span className={`font-mono font-semibold ${monthTotals.utilidad >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                              {fmtMoney(monthTotals.utilidad)}
-                            </span>
-                          </span>
+                        <span className="flex flex-wrap gap-2">
+                          <StatChip label="Flete neto" value={fmtMoney(monthTotals.flete)} />
+                          <StatChip label="Total c/IVA" value={fmtMoney(monthTotals.total)} />
+                          <StatChip label="Gastos" value={fmtMoney(monthTotals.gastos)} />
+                          <StatChip label="Utilidad" value={fmtMoney(monthTotals.utilidad)} tone={monthTotals.utilidad >= 0 ? "good" : "bad"} />
                         </span>
                       </div>
                     </td>
                   </tr>
 
                   {orderedVendors.map((vendorKey) => {
-                    const vendorRows = vendorGroups.get(vendorKey)!;
+                    const vendorRows = [...vendorGroups.get(vendorKey)!].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
                     const vendorTotals = tripMetrics(vendorRows);
 
                     return (
                       <Fragment key={`${monthKey}-${vendorKey}`}>
-                        <tr className="bg-brand-50/30">
-                          <td colSpan={columns.length + 1} className="px-4 py-1.5 text-sm text-neutral-600">
-                            <div className="flex flex-wrap items-center justify-between gap-2 pl-3">
-                              <span>
-                                👤 {vendorKey}{" "}
-                                <span className="font-normal text-neutral-400">
-                                  ({vendorTotals.count} viaje{vendorTotals.count === 1 ? "" : "s"})
+                        <tr className="border-l-4 border-brand-300 bg-brand-50/50">
+                          <td colSpan={columns.length + 1} className="px-4 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pl-2">
+                              <span className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+                                <span className="text-base">👤</span>
+                                {vendorKey}
+                                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-normal text-neutral-400 ring-1 ring-neutral-200">
+                                  {vendorTotals.count} viaje{vendorTotals.count === 1 ? "" : "s"}
                                 </span>
                               </span>
-                              <span className="flex flex-wrap gap-4 text-xs text-neutral-500">
-                                <span>Flete neto: <span className="font-mono font-medium text-neutral-700">{fmtMoney(vendorTotals.flete)}</span></span>
-                                <span>Total c/IVA: <span className="font-mono font-medium text-neutral-700">{fmtMoney(vendorTotals.total)}</span></span>
-                                <span>
-                                  Utilidad:{" "}
-                                  <span className={`font-mono font-medium ${vendorTotals.utilidad >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                                    {fmtMoney(vendorTotals.utilidad)}
-                                  </span>
-                                </span>
+                              <span className="flex flex-wrap gap-2">
+                                <StatChip label="Flete" value={fmtMoney(vendorTotals.flete)} compact />
+                                <StatChip label="Total c/IVA" value={fmtMoney(vendorTotals.total)} compact />
+                                <StatChip label="Utilidad" value={fmtMoney(vendorTotals.utilidad)} tone={vendorTotals.utilidad >= 0 ? "good" : "bad"} compact />
                               </span>
                             </div>
                           </td>
                         </tr>
-                        {vendorRows.map((row) => (
-                          <tr key={row.id} className="transition hover:bg-brand-50/40">
+                        {vendorRows.map((row, i) => (
+                          <tr key={row.id} className={`transition hover:bg-brand-50/40 ${i % 2 === 1 ? "bg-neutral-50/60" : ""}`}>
                             {columns.map((c) => (
                               <td key={c.label} className="px-4 py-2.5">
                                 {c.render(row, ctx)}
