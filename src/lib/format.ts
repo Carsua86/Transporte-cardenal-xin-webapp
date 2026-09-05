@@ -28,6 +28,18 @@ export function monthOf(dateStr: string | null | undefined) {
   return dateStr ? dateStr.slice(0, 7) : "";
 }
 
+const MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+export function fmtMonth(monthStr: string) {
+  const [y, m] = monthStr.split("-");
+  const idx = Number(m) - 1;
+  if (!y || idx < 0 || idx > 11) return monthStr;
+  return `${MESES[idx]} ${y}`;
+}
+
 export function addDays(dateStr: string | null | undefined, days: number) {
   const base = dateStr ? new Date(dateStr) : new Date();
   base.setDate(base.getDate() + days);
