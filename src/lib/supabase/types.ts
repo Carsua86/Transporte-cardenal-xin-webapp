@@ -143,6 +143,7 @@ export type Invoice = Timestamps & {
   fecha: string;
   numero: string;
   cliente: string;
+  cliente_rut: string | null;
   neto: number;
   fecha_vencimiento: string | null;
 };

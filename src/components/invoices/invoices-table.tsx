@@ -33,7 +33,7 @@ export function InvoicesTable({
       <table className="min-w-full divide-y divide-neutral-200 text-sm">
         <thead className="bg-brand-50/60">
           <tr>
-            {["Fecha", "N°", "Cliente", "Neto", "Total c/IVA", "Saldo", "Acciones"].map((h) => (
+            {["Fecha", "N°", "Cliente", "RUT", "Neto", "Total c/IVA", "Saldo", "Acciones"].map((h) => (
               <th key={h} className="px-4 py-3 text-left font-semibold text-neutral-600">{h}</th>
             ))}
           </tr>
@@ -41,7 +41,7 @@ export function InvoicesTable({
         <tbody className="divide-y divide-neutral-100">
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-neutral-400">
+              <td colSpan={8} className="px-4 py-10 text-center text-neutral-400">
                 <span className="block text-2xl">🗂️</span>
                 <span className="mt-1 block">Sin registros todavía.</span>
               </td>
@@ -64,7 +64,7 @@ export function InvoicesTable({
               return (
                 <Fragment key={monthKey}>
                   <tr className="bg-neutral-100">
-                    <td colSpan={7} className="px-4 py-2 text-sm font-semibold text-neutral-700">
+                    <td colSpan={8} className="px-4 py-2 text-sm font-semibold text-neutral-700">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span>
                           📅 {monthKey === "Sin fecha" ? "Sin fecha" : fmtMonth(monthKey)}{" "}
@@ -93,6 +93,7 @@ export function InvoicesTable({
                           <td className="px-4 py-2.5">{fmtDate(r.fecha)}</td>
                           <td className="px-4 py-2.5 font-mono">{r.numero || "—"}</td>
                           <td className="px-4 py-2.5">{r.cliente || "—"}</td>
+                          <td className="px-4 py-2.5 font-mono">{r.cliente_rut || "—"}</td>
                           <td className="px-4 py-2.5 font-mono">{fmtMoney(r.neto)}</td>
                           <td className="px-4 py-2.5 font-mono">{fmtMoney(t.total)}</td>
                           <td className="px-4 py-2.5">
@@ -115,7 +116,7 @@ export function InvoicesTable({
                         </tr>
                         {expanded && (
                           <tr>
-                            <td colSpan={7} className="bg-neutral-50 px-4 py-3">
+                            <td colSpan={8} className="bg-neutral-50 px-4 py-3">
                               {payments.length === 0 ? (
                                 <p className="text-sm text-neutral-400">Sin abonos ni descuentos registrados todavía.</p>
                               ) : (

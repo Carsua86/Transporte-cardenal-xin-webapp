@@ -36,6 +36,16 @@ export default async function ModulePage({
     getRowFileUrls(supabase, mod.fields, editing),
   ]);
 
+  const rutField = mod.fields.find((f) => f.key === "rut");
+  const rutCheck = rutField
+    ? {
+        key: "rut",
+        existing: rowsData
+          .filter((r) => r.rut)
+          .map((r) => ({ id: r.id, rut: String(r.rut), label: String(r.razon_social ?? r.nombre ?? r.rut) })),
+      }
+    : undefined;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -67,6 +77,7 @@ export default async function ModulePage({
           fields={resolveFields(mod.fields, ctx)}
           initial={editing}
           fileUrls={fileUrls}
+          rutCheck={rutCheck}
         />
       )}
     </div>

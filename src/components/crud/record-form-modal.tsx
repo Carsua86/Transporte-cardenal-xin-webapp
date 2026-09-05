@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ResolvedFieldDef, Row } from "@/lib/modules";
 import { upsertRecord } from "@/lib/actions/records";
+import { normalizeRut } from "@/lib/rut";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/lib/ui";
 
 export function RecordFormModal({
@@ -13,6 +14,7 @@ export function RecordFormModal({
   fields,
   initial,
   fileUrls,
+  rutCheck,
 }: {
   moduleKey: string;
   title: string;
@@ -20,12 +22,20 @@ export function RecordFormModal({
   fields: ResolvedFieldDef[];
   initial: Row | null;
   fileUrls?: Record<string, string | null>;
+  rutCheck?: { key: string; existing: { id: string; rut: string; label: string }[] };
 }) {
   const action = upsertRecord.bind(null, moduleKey, initial?.id ?? null);
   const [state, formAction, pending] = useActionState(
     async (_prev: { error: string | null }, formData: FormData) => action(formData),
     { error: null },
   );
+
+  const [rutValue, setRutValue] = useState(initial?.[rutCheck?.key ?? ""] ?? "");
+  const normalizedRut = normalizeRut(rutValue);
+  const duplicate =
+    rutCheck && normalizedRut
+      ? rutCheck.existing.find((e) => e.id !== initial?.id && normalizeRut(e.rut) === normalizedRut)
+      : undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 px-4 backdrop-blur-sm">
@@ -89,6 +99,23 @@ export function RecordFormModal({
                       <p className="text-xs text-neutral-400">Sube uno nuevo para reemplazarlo.</p>
                     )}
                   </div>
+                ) : rutCheck && field.key === rutCheck.key ? (
+                  <>
+                    <input
+                      id={`f_${field.key}`}
+                      name={field.key}
+                      type={field.type}
+                      required={field.required}
+                      value={rutValue}
+                      onChange={(e) => setRutValue(e.target.value)}
+                      className={inputClass}
+                    />
+                    {duplicate && (
+                      <p className="text-xs text-amber-600">
+                        ⚠️ Ya existe con este RUT: {duplicate.label}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <input
                     id={`f_${field.key}`}
