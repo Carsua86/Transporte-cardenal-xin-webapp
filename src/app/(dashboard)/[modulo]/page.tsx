@@ -4,6 +4,7 @@ import { MODULES, resolveFields, buildFileColumns, getRowFileUrls } from "@/lib/
 import { getModuleContext } from "@/lib/data/context";
 import { createClient } from "@/lib/supabase/server";
 import { DataTable } from "@/components/crud/data-table";
+import { SearchableDataTable } from "@/components/crud/searchable-data-table";
 import { RecordFormModal } from "@/components/crud/record-form-modal";
 import { btnPrimary } from "@/lib/ui";
 
@@ -60,14 +61,25 @@ export default async function ModulePage({
 
       {error && <p className="text-sm text-red-600">Error cargando datos: {error.message}</p>}
 
-      <DataTable
-        moduleKey={modulo}
-        singularLabel={mod.singularLabel}
-        columns={[...mod.columns, ...fileColumns]}
-        rows={rowsData}
-        ctx={ctx}
-        basePath={basePath}
-      />
+      {rutField ? (
+        <SearchableDataTable
+          moduleKey={modulo}
+          singularLabel={mod.singularLabel}
+          columns={[...mod.columns, ...fileColumns]}
+          rows={rowsData}
+          ctx={ctx}
+          basePath={basePath}
+        />
+      ) : (
+        <DataTable
+          moduleKey={modulo}
+          singularLabel={mod.singularLabel}
+          columns={[...mod.columns, ...fileColumns]}
+          rows={rowsData}
+          ctx={ctx}
+          basePath={basePath}
+        />
+      )}
 
       {showModal && (
         <RecordFormModal
