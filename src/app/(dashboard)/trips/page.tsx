@@ -2,7 +2,7 @@ import Link from "next/link";
 import { MODULES } from "@/lib/modules";
 import { getModuleContext } from "@/lib/data/context";
 import { createClient } from "@/lib/supabase/server";
-import { DataTable } from "@/components/crud/data-table";
+import { TripsTable } from "@/components/trips/trips-table";
 import { TripFormModal } from "@/components/trips/trip-form-modal";
 import type { Cliente } from "@/lib/supabase/types";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/lib/ui";
@@ -94,14 +94,7 @@ export default async function TripsPage({
 
       {error && <p className="text-sm text-red-600">Error cargando datos: {error.message}</p>}
 
-      <DataTable
-        moduleKey="trips"
-        singularLabel={mod.singularLabel}
-        columns={mod.columns}
-        rows={rowsData}
-        ctx={ctx}
-        basePath={basePath}
-      />
+      <TripsTable columns={mod.columns} rows={rowsData} ctx={ctx} basePath={basePath} />
 
       {showModal && (
         <TripFormModal

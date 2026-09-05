@@ -115,7 +115,7 @@ function clientLabel(ctx: ModuleContext, id: string | null) {
   return ctx.clientes.find((c) => c.value === id)?.label ?? "—";
 }
 
-function tripGastosTotales(r: Row) {
+export function tripGastosTotales(r: Row) {
   return (
     Number(r.peajes || 0) +
     Number(r.viaticos || 0) +
