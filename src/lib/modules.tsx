@@ -100,12 +100,12 @@ export type ModuleDef = {
   columns: ColumnDef[];
 };
 
-function truckLabel(ctx: ModuleContext, id: string | null) {
+export function truckLabel(ctx: ModuleContext, id: string | null) {
   if (!id) return "—";
   return ctx.trucks.find((t) => t.value === id)?.label ?? "—";
 }
 
-function driverName(ctx: ModuleContext, id: string | null) {
+export function driverName(ctx: ModuleContext, id: string | null) {
   if (!id) return "—";
   return ctx.drivers.find((d) => d.value === id)?.label ?? "—";
 }

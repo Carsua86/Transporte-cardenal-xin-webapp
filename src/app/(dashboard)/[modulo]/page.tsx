@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MODULES, resolveFields, buildFileColumns, getRowFileUrls } from "@/lib/modules";
+import { MODULES, resolveFields, buildFileColumns, getRowFileUrls, truckLabel, driverName } from "@/lib/modules";
 import { getModuleContext } from "@/lib/data/context";
 import { createClient } from "@/lib/supabase/server";
 import { DataTable } from "@/components/crud/data-table";
 import { RecordFormModal } from "@/components/crud/record-form-modal";
+import { AlertBanner } from "@/components/alert-banner";
+import { documentStatus, licenseStatus } from "@/lib/reports";
 import { normalizeRut } from "@/lib/rut";
 import { btnPrimary, inputClass } from "@/lib/ui";
 
@@ -58,6 +60,22 @@ export default async function ModulePage({
       }
     : undefined;
 
+  const alertItems =
+    modulo === "documents"
+      ? allRowsData
+          .map((d) => ({
+            label: d.tipo,
+            meta: d.truck_id ? truckLabel(ctx, d.truck_id) : driverName(ctx, d.driver_id),
+            status: documentStatus(d),
+          }))
+          .filter((x) => x.status.level !== "ok")
+      : modulo === "drivers"
+        ? allRowsData
+            .map((d) => ({ label: d.nombre, meta: d.categoria_licencia ?? undefined, status: licenseStatus(d) }))
+            .filter((x) => x.status.level !== "ok")
+        : [];
+  const alertTitle = modulo === "documents" ? "Documentos por vencer" : "Licencias por vencer";
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -69,6 +87,8 @@ export default async function ModulePage({
           + {mod.addLabel}
         </Link>
       </div>
+
+      <AlertBanner title={alertTitle} items={alertItems} />
 
       {hasRutField && (
         <form method="get" className="relative max-w-sm">
