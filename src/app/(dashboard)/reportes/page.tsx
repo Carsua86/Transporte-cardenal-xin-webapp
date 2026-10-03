@@ -87,11 +87,6 @@ export default async function ReportesPage({
 
   const porVendedor = aggregateByVendedor(t, mes);
 
-  const linkedFuelIdsMes = new Set(tMes.map((x) => x.fuel_id).filter(Boolean));
-  const extraCombustibleMes = fMes
-    .filter((x) => !linkedFuelIdsMes.has(x.id))
-    .reduce((s, x) => s + Number(x.costo_total || 0), 0);
-
   const paymentsByInvoice = new Map<string, InvoicePayment[]>();
   (payments ?? []).forEach((p) => {
     const list = paymentsByInvoice.get(p.invoice_id) ?? [];
@@ -339,14 +334,8 @@ export default async function ReportesPage({
         <SectionHeader
           icon="🧑‍💼"
           title={`Viajes por vendedor — ${fmtMonth(mes)}`}
-          description="Neto, IVA, total con IVA, gastos del viaje (peajes, viáticos, combustible del viaje y demás) y la utilidad real que deja cada vendedor."
+          description="Neto, IVA, total con IVA, gastos del viaje (peajes, viáticos, combustible del viaje y demás) y la utilidad real que deja cada vendedor. El combustible que no queda vinculado a un viaje se controla por camión en la sección de arriba, no aquí."
         />
-        {extraCombustibleMes > 0 && (
-          <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            ⚠️ Además, este mes hay {fmtMoney(extraCombustibleMes)} de combustible cargado a los camiones sin quedar vinculado a un viaje
-            específico, por lo que no se le puede descontar a ningún vendedor en particular.
-          </p>
-        )}
         {vendorRanking.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400 shadow-sm">
             Sin viajes este mes todavía.
