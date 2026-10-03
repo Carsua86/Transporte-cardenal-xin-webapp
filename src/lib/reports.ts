@@ -8,6 +8,10 @@ export function tripCostoDirecto(t: Trip) {
   return Number(t.peajes || 0) + Number(t.viaticos || 0) + Number(t.colacion || 0) + Number(t.otros || 0);
 }
 
+export function tripGastosTotales(t: Trip) {
+  return tripCostoDirecto(t) + Number(t.fuel?.costo_total || 0);
+}
+
 export const BONUS_TRIPS_THRESHOLD = 24;
 export const BONUS_AMOUNT = 100000;
 
@@ -139,17 +143,19 @@ export function aggregateVariableCostsByTruckMonth(trucks: Truck[], trips: Trip[
 export function aggregateByVendedor(trips: Trip[], month: string) {
   const tripsM = trips.filter((t) => monthOf(t.fecha) === month);
 
-  const porVendedor = new Map<string, { vendedor: string; viajes: number; neto: number }>();
+  const porVendedor = new Map<string, { vendedor: string; viajes: number; neto: number; gastos: number }>();
   const porVendedorRegion = new Map<string, { vendedor: string; region: string; viajes: number; neto: number }>();
 
   for (const t of tripsM) {
     const vendedor = t.vendedor || "Sin vendedor";
     const region = t.region_destino || "Sin región";
     const neto = Number(t.monto_flete || 0);
+    const gastos = tripGastosTotales(t);
 
-    const v = porVendedor.get(vendedor) ?? { vendedor, viajes: 0, neto: 0 };
+    const v = porVendedor.get(vendedor) ?? { vendedor, viajes: 0, neto: 0, gastos: 0 };
     v.viajes += 1;
     v.neto += neto;
+    v.gastos += gastos;
     porVendedor.set(vendedor, v);
 
     const key = `${vendedor}||${region}`;
@@ -160,7 +166,9 @@ export function aggregateByVendedor(trips: Trip[], month: string) {
   }
 
   return {
-    porVendedor: Array.from(porVendedor.values()).map(withIvaTotal).sort((a, b) => b.neto - a.neto),
+    porVendedor: Array.from(porVendedor.values())
+      .map((v) => ({ ...withIvaTotal(v), utilidad: v.neto - v.gastos }))
+      .sort((a, b) => b.neto - a.neto),
     porVendedorRegion: Array.from(porVendedorRegion.values())
       .map(withIvaTotal)
       .sort((a, b) => a.vendedor.localeCompare(b.vendedor) || b.neto - a.neto),

@@ -65,7 +65,7 @@ export default async function ReportesPage({
     { data: gastos }, { data: invoices }, { data: payments },
   ] = await Promise.all([
     supabase.from("trucks").select("*"),
-    supabase.from("trips").select("*"),
+    supabase.from("trips").select("*, fuel:fuel_id(litros, costo_total)"),
     supabase.from("fuel").select("*"),
     supabase.from("maintenance").select("*"),
     supabase.from("gastos").select("*"),
@@ -114,8 +114,8 @@ export default async function ReportesPage({
   const truckRanking = porCamion.rows.filter((r) => r.viajes > 0).sort((a, b) => b.margen - a.margen);
   const maxAbsMargen = Math.max(1, ...truckRanking.map((r) => Math.abs(r.margen)));
 
-  const vendorRanking = [...porVendedor.porVendedor].sort((a, b) => b.total - a.total);
-  const maxVendorTotal = Math.max(1, ...vendorRanking.map((r) => r.total));
+  const vendorRanking = [...porVendedor.porVendedor].sort((a, b) => b.neto - a.neto);
+  const maxAbsVendorUtilidad = Math.max(1, ...vendorRanking.map((r) => Math.abs(r.utilidad)));
 
   return (
     <div className="flex flex-col gap-8">
@@ -331,25 +331,54 @@ export default async function ReportesPage({
 
       {/* Viajes por vendedor */}
       <section className="flex flex-col gap-3">
-        <SectionHeader icon="🧑‍💼" title={`Viajes por vendedor — ${fmtMonth(mes)}`} description="Para cuadrar antes de facturar, de mayor a menor total vendido." />
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          {vendorRanking.length === 0 ? (
-            <p className="py-6 text-center text-sm text-neutral-400">Sin viajes este mes todavía.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-neutral-100">
-              {vendorRanking.map((r) => (
-                <div key={r.vendedor} className="flex flex-wrap items-center gap-3 py-2.5">
-                  <span className="w-32 shrink-0 truncate font-semibold text-neutral-800">{r.vendedor}</span>
-                  <span className="w-20 shrink-0 text-xs text-neutral-400">{r.viajes} viaje{r.viajes === 1 ? "" : "s"}</span>
-                  <div className="h-2.5 min-w-[6rem] flex-1 overflow-hidden rounded-full bg-neutral-100">
-                    <div className="h-2.5 rounded-full bg-brand-500" style={{ width: `${(r.total / maxVendorTotal) * 100}%` }} />
+        <SectionHeader
+          icon="🧑‍💼"
+          title={`Viajes por vendedor — ${fmtMonth(mes)}`}
+          description="Neto, IVA, gastos del viaje (peajes, viáticos y demás) y la utilidad real que deja cada vendedor."
+        />
+        {vendorRanking.length === 0 ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400 shadow-sm">
+            Sin viajes este mes todavía.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {vendorRanking.map((r) => {
+              const good = r.utilidad >= 0;
+              return (
+                <div key={r.vendedor} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate text-sm font-semibold text-neutral-900">👤 {r.vendedor}</span>
+                    <span className="shrink-0 text-xs text-neutral-400">{r.viajes} viaje{r.viajes === 1 ? "" : "s"}</span>
                   </div>
-                  <span className="w-32 shrink-0 text-right font-mono font-semibold text-neutral-800">{fmtMoney(r.total)}</span>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className={`h-2 rounded-full ${good ? "bg-emerald-500" : "bg-red-400"}`}
+                      style={{ width: `${(Math.abs(r.utilidad) / maxAbsVendorUtilidad) * 100}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Neto</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.neto)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-neutral-400">IVA</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.iva)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Gastos</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.gastos)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Utilidad</p>
+                      <p className={`font-mono text-sm font-semibold ${good ? "text-emerald-700" : "text-red-700"}`}>{fmtMoney(r.utilidad)}</p>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         <DetailToggle label="Ver desglose por vendedor y región de destino">
           <table className="min-w-full divide-y divide-neutral-200 text-sm">
