@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDate, fmtMoney, fmtNum } from "@/lib/format";
 import { toCsv } from "@/lib/csv";
+import { tripGastosTotales } from "@/lib/modules";
 import type { Cliente, Trip, TripCliente } from "@/lib/supabase/types";
 
 export async function GET(request: NextRequest) {
@@ -38,15 +39,17 @@ export async function GET(request: NextRequest) {
   }
 
   const headers = [
-    "Fecha", "Camión", "Conductor", "Cliente principal", "RUT cliente",
-    "N° Guía/Factura", "Origen", "Destino", "Comuna", "Región", "Vendedor",
-    "M2", "M3", "Flete neto", "IVA", "Total c/IVA",
+    "Vendedor", "Fecha", "Camión", "Conductor", "Cliente principal", "RUT cliente",
+    "N° Guía/Factura", "Origen", "Destino", "Comuna", "Región",
+    "M2", "M3", "Flete neto", "IVA", "Total c/IVA", "Gastos", "Utilidad",
     "Peajes", "Viáticos", "Colación", "Otros gastos", "Combustible",
     "Clientes extra (referencial)",
   ];
 
-  const rows = ((trips as Trip[] | null) ?? []).map((t) => {
+  function tripRow(t: Trip): string[] {
     const cliente = clienteById.get(t.cliente_id);
+    const flete = Number(t.monto_flete || 0);
+    const gastos = tripGastosTotales(t);
     const extras = (extrasByTrip.get(t.id) ?? [])
       .map((e) => {
         const c = clienteById.get(e.cliente_id);
@@ -59,6 +62,7 @@ export async function GET(request: NextRequest) {
       .join("  |  ");
 
     return [
+      t.vendedor || "Sin vendedor",
       fmtDate(t.fecha),
       truckById.get(t.truck_id) ?? "—",
       t.driver_id ? (driverById.get(t.driver_id) ?? "—") : "—",
@@ -69,12 +73,13 @@ export async function GET(request: NextRequest) {
       t.destino ?? "",
       t.comuna_destino ?? "",
       t.region_destino ?? "",
-      t.vendedor ?? "",
       t.mt2 != null ? fmtNum(t.mt2) : "",
       t.mt3 != null ? fmtNum(t.mt3) : "",
-      fmtMoney(t.monto_flete),
-      fmtMoney(Number(t.monto_flete || 0) * 0.19),
-      fmtMoney(Number(t.monto_flete || 0) * 1.19),
+      fmtMoney(flete),
+      fmtMoney(flete * 0.19),
+      fmtMoney(flete * 1.19),
+      fmtMoney(gastos),
+      fmtMoney(flete - gastos),
       fmtMoney(t.peajes),
       fmtMoney(t.viaticos),
       fmtMoney(t.colacion),
@@ -82,7 +87,44 @@ export async function GET(request: NextRequest) {
       fmtMoney(t.fuel?.costo_total ?? 0),
       extras,
     ];
-  });
+  }
+
+  function subtotalRow(label: string, trips: Trip[]): string[] {
+    const flete = trips.reduce((s, t) => s + Number(t.monto_flete || 0), 0);
+    const gastos = trips.reduce((s, t) => s + tripGastosTotales(t), 0);
+    const row = new Array(headers.length).fill("");
+    row[0] = label;
+    row[13] = fmtMoney(flete);
+    row[14] = fmtMoney(flete * 0.19);
+    row[15] = fmtMoney(flete * 1.19);
+    row[16] = fmtMoney(gastos);
+    row[17] = fmtMoney(flete - gastos);
+    return row;
+  }
+
+  const allTrips = (trips as Trip[] | null) ?? [];
+  const vendorGroups = new Map<string, Trip[]>();
+  for (const t of allTrips) {
+    const key = t.vendedor || "Sin vendedor";
+    const list = vendorGroups.get(key) ?? [];
+    list.push(t);
+    vendorGroups.set(key, list);
+  }
+  const orderedVendors = [...vendorGroups.keys()].sort(
+    (a, b) =>
+      vendorGroups.get(b)!.reduce((s, t) => s + Number(t.monto_flete || 0), 0) -
+      vendorGroups.get(a)!.reduce((s, t) => s + Number(t.monto_flete || 0), 0),
+  );
+
+  const rows: string[][] = [];
+  for (const vendedor of orderedVendors) {
+    const vendorTrips = [...vendorGroups.get(vendedor)!].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+    for (const t of vendorTrips) rows.push(tripRow(t));
+    rows.push(subtotalRow(`TOTAL ${vendedor} (${vendorTrips.length} viaje${vendorTrips.length === 1 ? "" : "s"})`, vendorTrips));
+  }
+  if (allTrips.length > 0) {
+    rows.push(subtotalRow(`TOTAL GENERAL (${allTrips.length} viaje${allTrips.length === 1 ? "" : "s"})`, allTrips));
+  }
 
   const csv = toCsv(headers, rows);
   const fileName = `viajes_${new Date().toISOString().slice(0, 10)}.csv`;
