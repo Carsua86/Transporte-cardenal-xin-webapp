@@ -4,7 +4,8 @@ import { getModuleContext } from "@/lib/data/context";
 import { createClient } from "@/lib/supabase/server";
 import { TripsTable } from "@/components/trips/trips-table";
 import { TripFormModal } from "@/components/trips/trip-form-modal";
-import { fmtMonth, monthRange, shiftMonth, todayStr } from "@/lib/format";
+import { MonthNav } from "@/components/month-nav";
+import { monthRange, todayStr } from "@/lib/format";
 import type { Cliente } from "@/lib/supabase/types";
 import { btnPrimary, btnSecondary, inputClass, labelClass } from "@/lib/ui";
 
@@ -17,8 +18,6 @@ export default async function TripsPage({
   const { form, cliente_id: clienteId = "", mes = currentMonth } = await searchParams;
   const mod = MODULES.trips;
   const { desde, hasta } = monthRange(mes);
-  const prevMes = shiftMonth(mes, -1);
-  const nextMes = shiftMonth(mes, 1);
 
   const supabase = await createClient();
 
@@ -83,22 +82,7 @@ export default async function TripsPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
-        <Link href={monthLinkParams(prevMes)} className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-neutral-500 hover:bg-neutral-100" title="Mes anterior">
-          ◀
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="text-base font-semibold text-neutral-900">{fmtMonth(mes)}</span>
-          {mes !== currentMonth && (
-            <Link href={monthLinkParams(currentMonth)} className="text-xs font-medium text-brand-600 underline hover:text-brand-700">
-              Volver a hoy
-            </Link>
-          )}
-        </div>
-        <Link href={monthLinkParams(nextMes)} className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-neutral-500 hover:bg-neutral-100" title="Mes siguiente">
-          ▶
-        </Link>
-      </div>
+      <MonthNav mes={mes} currentMonth={currentMonth} basePath={basePath} extraParams={clienteId ? { cliente_id: clienteId } : {}} />
 
       <form method="get" className="flex flex-wrap items-end gap-3 rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
         <input type="hidden" name="mes" value={mes} />

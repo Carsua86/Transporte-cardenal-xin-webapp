@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { fmtMoney, fmtMonth, fmtNum, fmtPct, todayStr } from "@/lib/format";
+import { fmtMoney, fmtMonth, fmtNum, fmtPct, monthOf, todayStr } from "@/lib/format";
 import {
   aggregateAging, aggregateByVendedor, aggregatePorCamionCompleto, aggregateVariableCostsByTruckMonth,
   monthlyAggregate, uniqueMonths,
 } from "@/lib/reports";
 import { Badge } from "@/components/badge";
+import { MonthNav } from "@/components/month-nav";
 import type { InvoicePayment } from "@/lib/supabase/types";
 
 function SectionHeader({ icon, title, description }: { icon: string; title: string; description?: string }) {
@@ -49,7 +50,14 @@ const AGING_BAR_COLORS: Record<string, string> = {
 const th = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500";
 const rowClass = "transition even:bg-neutral-50/60 hover:bg-brand-50/40";
 
-export default async function ReportesPage() {
+export default async function ReportesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const currentMonth = todayStr().slice(0, 7);
+  const { mes = currentMonth } = await searchParams;
+
   const supabase = await createClient();
 
   const [
@@ -69,11 +77,15 @@ export default async function ReportesPage() {
   const months = uniqueMonths(t, f, m, g);
   const monthly = months.map((month) => monthlyAggregate(month, t, f, m, g));
 
-  const porCamion = aggregatePorCamionCompleto(trucks ?? [], t, f, m, g);
-  const gastosVariables = aggregateVariableCostsByTruckMonth(trucks ?? [], t, f);
+  const tMes = t.filter((x) => monthOf(x.fecha) === mes);
+  const fMes = f.filter((x) => monthOf(x.fecha) === mes);
+  const mMes = m.filter((x) => monthOf(x.fecha) === mes);
+  const gMes = g.filter((x) => monthOf(x.fecha) === mes);
 
-  const currentMonth = todayStr().slice(0, 7);
-  const porVendedor = aggregateByVendedor(t, currentMonth);
+  const porCamion = aggregatePorCamionCompleto(trucks ?? [], tMes, fMes, mMes, gMes);
+  const gastosVariables = aggregateVariableCostsByTruckMonth(trucks ?? [], tMes, fMes);
+
+  const porVendedor = aggregateByVendedor(t, mes);
 
   const paymentsByInvoice = new Map<string, InvoicePayment[]>();
   (payments ?? []).forEach((p) => {
@@ -99,7 +111,7 @@ export default async function ReportesPage() {
   const maxIngresosMes = Math.max(1, ...monthly.map((r) => Math.max(r.ingresos, r.gastoTotal)));
   const monthlyChart = [...monthly].reverse(); // más reciente arriba para lectura rápida del dashboard
 
-  const truckRanking = [...porCamion.rows].sort((a, b) => b.margen - a.margen);
+  const truckRanking = porCamion.rows.filter((r) => r.viajes > 0).sort((a, b) => b.margen - a.margen);
   const maxAbsMargen = Math.max(1, ...truckRanking.map((r) => Math.abs(r.margen)));
 
   const vendorRanking = [...porVendedor.porVendedor].sort((a, b) => b.total - a.total);
@@ -188,12 +200,15 @@ export default async function ReportesPage() {
         </DetailToggle>
       </section>
 
+      {/* Detalle por periodo: camión y vendedor */}
+      <MonthNav mes={mes} currentMonth={currentMonth} basePath="/reportes" />
+
       {/* Ganancia por camión */}
       <section className="flex flex-col gap-3">
-        <SectionHeader icon="🚛" title="Ganancia por camión" description="Viajes realizados, lo ganado, lo gastado (combustible y demás) y la utilidad de cada camión." />
+        <SectionHeader icon="🚛" title="Ganancia por camión" description={`Viajes, ganado, gastos (combustible y demás) y utilidad de cada camión en ${fmtMonth(mes)}.`} />
         {truckRanking.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400 shadow-sm">
-            Agrega camiones y viajes para ver este reporte.
+            Sin viajes este mes todavía.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -277,22 +292,21 @@ export default async function ReportesPage() {
           </table>
         </DetailToggle>
 
-        <DetailToggle label="Ver combustible, peajes y viáticos por camión y mes">
+        <DetailToggle label={`Ver combustible, peajes y viáticos por camión — ${fmtMonth(mes)}`}>
           <table className="min-w-full divide-y divide-neutral-200 text-sm">
             <thead className="bg-brand-50/60">
               <tr>
-                {["Camión", "Mes", "Combustible", "Peajes", "Viáticos", "Total"].map((h) => (
+                {["Camión", "Combustible", "Peajes", "Viáticos", "Total"].map((h) => (
                   <th key={h} className={th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {gastosVariables.rows.length === 0 ? (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-neutral-400">Sin datos todavía.</td></tr>
+                <tr><td colSpan={5} className="px-3 py-6 text-center text-neutral-400">Sin datos este mes.</td></tr>
               ) : gastosVariables.rows.map((r) => (
                 <tr key={`${r.truckId}||${r.month}`} className={rowClass}>
                   <td className="px-3 py-2 font-semibold">{r.truckPatente}</td>
-                  <td className="px-3 py-2">{fmtMonth(r.month)}</td>
                   <td className="px-3 py-2 font-mono">{fmtMoney(r.combustible)}</td>
                   <td className="px-3 py-2 font-mono">{fmtMoney(r.peajes)}</td>
                   <td className="px-3 py-2 font-mono">{fmtMoney(r.viaticos)}</td>
@@ -303,7 +317,7 @@ export default async function ReportesPage() {
             {gastosVariables.rows.length > 0 && (
               <tfoot className="bg-neutral-100 font-semibold">
                 <tr>
-                  <td className="px-3 py-2.5" colSpan={2}>Total todos los camiones</td>
+                  <td className="px-3 py-2.5">Total todos los camiones</td>
                   <td className="px-3 py-2.5 font-mono">{fmtMoney(gastosVariables.totals.combustible)}</td>
                   <td className="px-3 py-2.5 font-mono">{fmtMoney(gastosVariables.totals.peajes)}</td>
                   <td className="px-3 py-2.5 font-mono">{fmtMoney(gastosVariables.totals.viaticos)}</td>
@@ -317,7 +331,7 @@ export default async function ReportesPage() {
 
       {/* Viajes por vendedor */}
       <section className="flex flex-col gap-3">
-        <SectionHeader icon="🧑‍💼" title={`Viajes por vendedor — ${fmtMonth(currentMonth)}`} description="Para cuadrar antes de facturar, de mayor a menor total vendido." />
+        <SectionHeader icon="🧑‍💼" title={`Viajes por vendedor — ${fmtMonth(mes)}`} description="Para cuadrar antes de facturar, de mayor a menor total vendido." />
         <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           {vendorRanking.length === 0 ? (
             <p className="py-6 text-center text-sm text-neutral-400">Sin viajes este mes todavía.</p>
