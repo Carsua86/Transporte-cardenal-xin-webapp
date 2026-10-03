@@ -334,7 +334,7 @@ export default async function ReportesPage({
         <SectionHeader
           icon="🧑‍💼"
           title={`Viajes por vendedor — ${fmtMonth(mes)}`}
-          description="Neto, IVA, gastos del viaje (peajes, viáticos y demás) y la utilidad real que deja cada vendedor."
+          description="Neto, IVA, total con IVA, gastos del viaje (peajes, viáticos y demás) y la utilidad real que deja cada vendedor."
         />
         {vendorRanking.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400 shadow-sm">
@@ -356,7 +356,7 @@ export default async function ReportesPage({
                       style={{ width: `${(Math.abs(r.utilidad) / maxAbsVendorUtilidad) * 100}%` }}
                     />
                   </div>
-                  <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     <div>
                       <p className="text-[11px] text-neutral-400">Neto</p>
                       <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.neto)}</p>
@@ -366,10 +366,14 @@ export default async function ReportesPage({
                       <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.iva)}</p>
                     </div>
                     <div>
+                      <p className="text-[11px] text-neutral-400">Total c/IVA</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.total)}</p>
+                    </div>
+                    <div>
                       <p className="text-[11px] text-neutral-400">Gastos</p>
                       <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.gastos)}</p>
                     </div>
-                    <div>
+                    <div className="col-span-2">
                       <p className="text-[11px] text-neutral-400">Utilidad</p>
                       <p className={`font-mono text-sm font-semibold ${good ? "text-emerald-700" : "text-red-700"}`}>{fmtMoney(r.utilidad)}</p>
                     </div>
