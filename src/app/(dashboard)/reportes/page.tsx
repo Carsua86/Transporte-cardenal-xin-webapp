@@ -190,34 +190,47 @@ export default async function ReportesPage() {
 
       {/* Ganancia por camión */}
       <section className="flex flex-col gap-3">
-        <SectionHeader icon="🚛" title="Ganancia por camión" description="De mayor a menor margen, considerando todos sus costos." />
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          {truckRanking.length === 0 ? (
-            <p className="py-6 text-center text-sm text-neutral-400">Agrega camiones y viajes para ver este reporte.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-neutral-100">
-              {truckRanking.map((r) => {
-                const good = r.margen >= 0;
-                return (
-                  <div key={r.truck.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                    <span className="w-20 shrink-0 font-semibold text-neutral-800">{r.truck.patente}</span>
-                    <span className="w-20 shrink-0 text-xs text-neutral-400">{r.viajes} viaje{r.viajes === 1 ? "" : "s"}</span>
-                    <div className="h-2.5 min-w-[6rem] flex-1 overflow-hidden rounded-full bg-neutral-100">
-                      <div
-                        className={`h-2.5 rounded-full ${good ? "bg-emerald-500" : "bg-red-400"}`}
-                        style={{ width: `${(Math.abs(r.margen) / maxAbsMargen) * 100}%` }}
-                      />
-                    </div>
-                    <span className={`w-32 shrink-0 text-right font-mono font-semibold ${good ? "text-emerald-700" : "text-red-700"}`}>
-                      {fmtMoney(r.margen)}
-                    </span>
-                    <span className={`w-16 shrink-0 text-right text-xs ${good ? "text-emerald-600" : "text-red-600"}`}>{fmtPct(r.rentabilidad)}</span>
+        <SectionHeader icon="🚛" title="Ganancia por camión" description="Viajes realizados, lo ganado, lo gastado (combustible y demás) y la utilidad de cada camión." />
+        {truckRanking.length === 0 ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-400 shadow-sm">
+            Agrega camiones y viajes para ver este reporte.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {truckRanking.map((r) => {
+              const good = r.margen >= 0;
+              return (
+                <div key={r.truck.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900">🚛 {r.truck.patente}</span>
+                    <span className="text-xs text-neutral-400">{r.viajes} viaje{r.viajes === 1 ? "" : "s"}</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className={`h-2 rounded-full ${good ? "bg-emerald-500" : "bg-red-400"}`}
+                      style={{ width: `${(Math.abs(r.margen) / maxAbsMargen) * 100}%` }}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Ganado</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.ingresos)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Gastos</p>
+                      <p className="font-mono text-sm font-semibold text-neutral-800">{fmtMoney(r.gastoTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-neutral-400">Utilidad</p>
+                      <p className={`font-mono text-sm font-semibold ${good ? "text-emerald-700" : "text-red-700"}`}>{fmtMoney(r.margen)}</p>
+                    </div>
+                  </div>
+                  <p className={`mt-1.5 text-right text-xs ${good ? "text-emerald-600" : "text-red-600"}`}>{fmtPct(r.rentabilidad)} rentabilidad</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
