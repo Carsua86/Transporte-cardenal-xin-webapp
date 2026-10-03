@@ -13,12 +13,12 @@ function tripMetrics(rows: Row[]) {
       return {
         count: acc.count + 1,
         flete: acc.flete + flete,
-        total: acc.total + flete * 1.19,
+        iva: acc.iva + flete * 0.19,
         gastos: acc.gastos + gastos,
         utilidad: acc.utilidad + (flete - gastos),
       };
     },
-    { count: 0, flete: 0, total: 0, gastos: 0, utilidad: 0 },
+    { count: 0, flete: 0, iva: 0, gastos: 0, utilidad: 0 },
   );
 }
 
@@ -63,72 +63,72 @@ export function TripsTable({
     monthGroups.set(key, list);
   }
   const orderedMonths = [...monthGroups.keys()].sort((a, b) => (a < b ? -1 : 1));
+  const mostRecentMonth = orderedMonths[orderedMonths.length - 1];
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center text-neutral-400 shadow-sm">
+        <span className="block text-2xl">🗂️</span>
+        <span className="mt-1 block">Sin registros todavía.</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <table className="min-w-full divide-y divide-neutral-200 text-sm">
-        <thead className="bg-brand-50/60">
-          <tr>
-            {columns.map((c) => (
-              <th key={c.label} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                {c.label}
-              </th>
-            ))}
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">Acciones</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-100">
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-neutral-400">
-                <span className="block text-2xl">🗂️</span>
-                <span className="mt-1 block">Sin registros todavía.</span>
-              </td>
-            </tr>
-          ) : (
-            orderedMonths.map((monthKey) => {
-              const monthRows = monthGroups.get(monthKey)!;
-              const monthTotals = tripMetrics(monthRows);
+    <div className="flex flex-col gap-3">
+      {orderedMonths.map((monthKey) => {
+        const monthRows = monthGroups.get(monthKey)!;
+        const monthTotals = tripMetrics(monthRows);
 
-              const vendorGroups = new Map<string, Row[]>();
-              for (const r of monthRows) {
-                const key = (r.vendedor && String(r.vendedor).trim()) || "Sin vendedor";
-                const list = vendorGroups.get(key) ?? [];
-                list.push(r);
-                vendorGroups.set(key, list);
-              }
-              const orderedVendors = [...vendorGroups.keys()].sort(
-                (a, b) => tripMetrics(vendorGroups.get(b)!).flete - tripMetrics(vendorGroups.get(a)!).flete,
-              );
+        const vendorGroups = new Map<string, Row[]>();
+        for (const r of monthRows) {
+          const key = (r.vendedor && String(r.vendedor).trim()) || "Sin vendedor";
+          const list = vendorGroups.get(key) ?? [];
+          list.push(r);
+          vendorGroups.set(key, list);
+        }
+        const orderedVendors = [...vendorGroups.keys()].sort(
+          (a, b) => tripMetrics(vendorGroups.get(b)!).flete - tripMetrics(vendorGroups.get(a)!).flete,
+        );
 
-              return (
-                <Fragment key={monthKey}>
-                  <tr className="bg-gradient-to-r from-brand-700 to-brand-600">
-                    <td colSpan={columns.length + 1} className="px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-base">📅</span>
-                          {monthKey === "Sin fecha" ? "Sin fecha" : fmtMonth(monthKey)}
-                          <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-normal text-white/90">
-                            {monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"}
-                          </span>
-                        </span>
-                        <span className="flex flex-wrap gap-2">
-                          <StatChip label="Flete neto" value={fmtMoney(monthTotals.flete)} />
-                          <StatChip label="Total c/IVA" value={fmtMoney(monthTotals.total)} />
-                          <StatChip label="Gastos" value={fmtMoney(monthTotals.gastos)} />
-                          <StatChip label="Utilidad" value={fmtMoney(monthTotals.utilidad)} tone={monthTotals.utilidad >= 0 ? "good" : "bad"} />
-                        </span>
-                      </div>
-                    </td>
+        return (
+          <details key={monthKey} className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm" open={monthKey === mostRecentMonth}>
+            <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-brand-700 to-brand-600 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-2 text-sm font-semibold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-base">📅</span>
+                {monthKey === "Sin fecha" ? "Sin fecha" : fmtMonth(monthKey)}
+                <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-normal text-white/90">
+                  {monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"}
+                </span>
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                <StatChip label="Neto" value={fmtMoney(monthTotals.flete)} />
+                <StatChip label="IVA" value={fmtMoney(monthTotals.iva)} />
+                <StatChip label="Gastos" value={fmtMoney(monthTotals.gastos)} />
+                <StatChip label="Utilidad" value={fmtMoney(monthTotals.utilidad)} tone={monthTotals.utilidad >= 0 ? "good" : "bad"} />
+                <span className="ml-1 text-white/70 transition group-open:rotate-180">▾</span>
+              </span>
+            </summary>
+
+            <div className="overflow-x-auto border-t border-neutral-200">
+              <table className="min-w-full divide-y divide-neutral-200 text-sm">
+                <thead className="bg-brand-50/60">
+                  <tr>
+                    {columns.map((c) => (
+                      <th key={c.label} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                        {c.label}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">Acciones</th>
                   </tr>
-
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
                   {orderedVendors.map((vendorKey) => {
                     const vendorRows = [...vendorGroups.get(vendorKey)!].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
                     const vendorTotals = tripMetrics(vendorRows);
 
                     return (
-                      <Fragment key={`${monthKey}-${vendorKey}`}>
+                      <Fragment key={vendorKey}>
                         <tr className="border-l-4 border-brand-300 bg-brand-50/50">
                           <td colSpan={columns.length + 1} className="px-4 py-2">
                             <div className="flex flex-wrap items-center justify-between gap-2 pl-2">
@@ -140,8 +140,8 @@ export function TripsTable({
                                 </span>
                               </span>
                               <span className="flex flex-wrap gap-2">
-                                <StatChip label="Flete" value={fmtMoney(vendorTotals.flete)} compact />
-                                <StatChip label="Total c/IVA" value={fmtMoney(vendorTotals.total)} compact />
+                                <StatChip label="Neto" value={fmtMoney(vendorTotals.flete)} compact />
+                                <StatChip label="IVA" value={fmtMoney(vendorTotals.iva)} compact />
                                 <StatChip label="Utilidad" value={fmtMoney(vendorTotals.utilidad)} tone={vendorTotals.utilidad >= 0 ? "good" : "bad"} compact />
                               </span>
                             </div>
@@ -167,12 +167,12 @@ export function TripsTable({
                       </Fragment>
                     );
                   })}
-                </Fragment>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        );
+      })}
     </div>
   );
 }
