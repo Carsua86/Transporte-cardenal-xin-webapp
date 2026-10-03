@@ -40,6 +40,20 @@ export function fmtMonth(monthStr: string) {
   return `${MESES[idx]} ${y}`;
 }
 
+export function shiftMonth(monthStr: string, delta: number) {
+  const [y, m] = monthStr.split("-").map(Number);
+  const date = new Date(y, m - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthRange(monthStr: string) {
+  const [y, m] = monthStr.split("-").map(Number);
+  const desde = `${monthStr}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const hasta = `${monthStr}-${String(lastDay).padStart(2, "0")}`;
+  return { desde, hasta };
+}
+
 export function addDays(dateStr: string | null | undefined, days: number) {
   const base = dateStr ? new Date(dateStr) : new Date();
   base.setDate(base.getDate() + days);
