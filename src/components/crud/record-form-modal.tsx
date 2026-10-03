@@ -108,11 +108,11 @@ export function RecordFormModal({
                       required={field.required}
                       value={rutValue}
                       onChange={(e) => setRutValue(e.target.value)}
-                      className={inputClass}
+                      className={`${inputClass} ${duplicate ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
                     />
                     {duplicate && (
-                      <p className="text-xs text-amber-600">
-                        ⚠️ Ya existe con este RUT: {duplicate.label}
+                      <p className="flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700">
+                        ⚠️ Este RUT ya está registrado: {duplicate.label}
                       </p>
                     )}
                   </>
@@ -131,11 +131,12 @@ export function RecordFormModal({
             ))}
           </div>
           {state.error && <p className="mt-4 text-sm text-red-600">{state.error}</p>}
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="mt-6 flex items-center justify-end gap-2">
+            {duplicate && <p className="mr-auto text-xs text-red-600">Corrige el RUT para poder guardar.</p>}
             <Link href={closeHref} className={btnSecondary}>
               Cancelar
             </Link>
-            <button type="submit" disabled={pending} className={btnPrimary}>
+            <button type="submit" disabled={pending || Boolean(duplicate)} className={btnPrimary}>
               {pending ? "Guardando…" : "Guardar"}
             </button>
           </div>
