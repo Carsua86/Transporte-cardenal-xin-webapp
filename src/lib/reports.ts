@@ -44,8 +44,9 @@ export function monthlyAggregate(
   const mantenciones = maintenance.filter((m) => monthOf(m.fecha) === month).reduce((s, m) => s + Number(m.costo || 0), 0);
   const admin = gastos.filter((g) => monthOf(g.fecha) === month).reduce((s, g) => s + Number(g.monto || 0), 0);
   const gastoTotal = costoDirecto + combustible + mantenciones + admin;
-  const gananciaNeta = ingresos - gastoTotal;
-  const rentabilidad = ingresos ? gananciaNeta / ingresos : 0;
+  const totalConIva = ingresos * 1.19;
+  const gananciaNeta = totalConIva - gastoTotal;
+  const rentabilidad = totalConIva ? gananciaNeta / totalConIva : 0;
   return { month, ingresos, costoDirecto, mt2Total, mt3Total, combustible, mantenciones, admin, gastoTotal, gananciaNeta, rentabilidad };
 }
 
@@ -74,10 +75,11 @@ export function aggregatePorCamionCompleto(
       const mantenciones = maintenance.filter((m) => m.truck_id === t.id).reduce((s, m) => s + Number(m.costo || 0), 0);
       const gastosAsignados = gastos.filter((g) => g.truck_id === t.id).reduce((s, g) => s + Number(g.monto || 0), 0);
       const gastoTotal = costoViajes + combustible + mantenciones + gastosAsignados;
-      const margen = ingresos - gastoTotal;
+      const totalConIva = ingresos * 1.19;
+      const margen = totalConIva - gastoTotal;
       return {
         truck: t, viajes: tripsT.length, ingresos, costoViajes, combustible, mantenciones,
-        gastosAsignados, gastoTotal, margen, rentabilidad: ingresos ? margen / ingresos : 0,
+        gastosAsignados, gastoTotal, margen, rentabilidad: totalConIva ? margen / totalConIva : 0,
       };
     })
     .sort((a, b) => b.margen - a.margen);
@@ -167,7 +169,10 @@ export function aggregateByVendedor(trips: Trip[], month: string) {
 
   return {
     porVendedor: Array.from(porVendedor.values())
-      .map((v) => ({ ...withIvaTotal(v), utilidad: v.neto - v.gastos }))
+      .map((v) => {
+        const withIva = withIvaTotal(v);
+        return { ...withIva, utilidad: withIva.total - v.gastos };
+      })
       .sort((a, b) => b.neto - a.neto),
     porVendedorRegion: Array.from(porVendedorRegion.values())
       .map(withIvaTotal)

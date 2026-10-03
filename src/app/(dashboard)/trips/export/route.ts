@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       fmtMoney(flete * 0.19),
       fmtMoney(flete * 1.19),
       fmtMoney(gastos),
-      fmtMoney(flete - gastos),
+      fmtMoney(flete * 1.19 - gastos),
       fmtMoney(t.peajes),
       fmtMoney(t.viaticos),
       fmtMoney(t.colacion),
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     row[14] = fmtMoney(flete * 0.19);
     row[15] = fmtMoney(flete * 1.19);
     row[16] = fmtMoney(gastos);
-    row[17] = fmtMoney(flete - gastos);
+    row[17] = fmtMoney(flete * 1.19 - gastos);
     return row;
   }
 

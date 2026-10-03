@@ -5,17 +5,19 @@ import { tripGastosTotales } from "@/lib/modules";
 import { fmtMoney } from "@/lib/format";
 import { DeleteButton } from "@/components/crud/delete-button";
 
-function tripMetrics(rows: Row[]) {
-  return rows.reduce(
+type TripMetrics = { count: number; flete: number; iva: number; gastos: number; utilidad: number };
+
+function tripMetrics(rows: Row[]): TripMetrics {
+  return rows.reduce<TripMetrics>(
     (acc, r) => {
       const flete = Number(r.monto_flete || 0);
-      const gastos = tripGastosTotales(r);
+      const gastos = Number(tripGastosTotales(r));
       return {
         count: acc.count + 1,
         flete: acc.flete + flete,
         iva: acc.iva + flete * 0.19,
         gastos: acc.gastos + gastos,
-        utilidad: acc.utilidad + (flete - gastos),
+        utilidad: acc.utilidad + (flete * 1.19 - gastos),
       };
     },
     { count: 0, flete: 0, iva: 0, gastos: 0, utilidad: 0 },
@@ -50,12 +52,14 @@ export function TripsTable({
   ctx,
   basePath,
   editQuery = "",
+  extraCombustible = 0,
 }: {
   columns: ColumnDef[];
   rows: Row[];
   ctx: ModuleContext;
   basePath: string;
   editQuery?: string;
+  extraCombustible?: number;
 }) {
   if (rows.length === 0) {
     return (
@@ -66,7 +70,12 @@ export function TripsTable({
     );
   }
 
-  const monthTotals = tripMetrics(rows);
+  const monthTotalsRaw = tripMetrics(rows);
+  const monthTotals = {
+    ...monthTotalsRaw,
+    gastos: monthTotalsRaw.gastos + extraCombustible,
+    utilidad: monthTotalsRaw.utilidad - extraCombustible,
+  };
 
   const vendorGroups = new Map<string, Row[]>();
   for (const r of rows) {
@@ -81,16 +90,23 @@ export function TripsTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-brand-700 to-brand-600 px-4 py-3">
-        <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white/90">
-          {monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"} este mes
-        </span>
-        <span className="flex flex-wrap items-center gap-2">
-          <StatChip label="Neto" value={fmtMoney(monthTotals.flete)} />
-          <StatChip label="IVA" value={fmtMoney(monthTotals.iva)} />
-          <StatChip label="Gastos" value={fmtMoney(monthTotals.gastos)} />
-          <StatChip label="Utilidad" value={fmtMoney(monthTotals.utilidad)} tone={monthTotals.utilidad >= 0 ? "good" : "bad"} />
-        </span>
+      <div className="flex flex-col gap-1.5 bg-gradient-to-r from-brand-700 to-brand-600 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white/90">
+            {monthTotals.count} viaje{monthTotals.count === 1 ? "" : "s"} este mes
+          </span>
+          <span className="flex flex-wrap items-center gap-2">
+            <StatChip label="Neto" value={fmtMoney(monthTotals.flete)} />
+            <StatChip label="IVA" value={fmtMoney(monthTotals.iva)} />
+            <StatChip label="Gastos" value={fmtMoney(monthTotals.gastos)} />
+            <StatChip label="Utilidad" value={fmtMoney(monthTotals.utilidad)} tone={monthTotals.utilidad >= 0 ? "good" : "bad"} />
+          </span>
+        </div>
+        {extraCombustible > 0 && (
+          <p className="text-right text-[11px] text-white/70">
+            Gastos incluye {fmtMoney(extraCombustible)} de combustible cargado este mes sin viaje asociado.
+          </p>
+        )}
       </div>
 
       <div className="overflow-x-auto">

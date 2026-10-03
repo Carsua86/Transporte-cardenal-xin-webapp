@@ -31,19 +31,30 @@ export default async function TripsPage({
 
   const editingId = form && form !== "new" ? form : null;
 
-  const [ctx, { data: rows, error }, { data: clientes }, { data: editingRow }] = await Promise.all([
+  const [ctx, { data: rows, error }, { data: clientes }, { data: editingRow }, { data: fuelMonth }] = await Promise.all([
     getModuleContext(),
     query,
     supabase.from("clientes").select("*").order("razon_social") as unknown as Promise<{ data: Cliente[] | null }>,
     editingId
       ? supabase.from("trips").select("*, fuel:fuel_id(litros, costo_total)").eq("id", editingId).maybeSingle()
       : Promise.resolve({ data: null }),
+    clienteId
+      ? Promise.resolve({ data: null })
+      : supabase.from("fuel").select("id, costo_total").gte("fecha", desde).lte("fecha", hasta),
   ]);
 
   const rowsData = (rows ?? []).map((r) => ({
     ...r,
     _extrasCount: r.trip_clientes?.[0]?.count ?? 0,
   }));
+
+  let extraCombustible = 0;
+  if (!clienteId && fuelMonth) {
+    const linkedFuelIds = new Set(rowsData.map((r) => r.fuel_id).filter(Boolean));
+    extraCombustible = fuelMonth
+      .filter((f) => !linkedFuelIds.has(f.id))
+      .reduce((s, f) => s + Number(f.costo_total || 0), 0);
+  }
   const basePath = "/trips";
   const editing = form === "new" ? null : editingRow ?? null;
   const showModal = form === "new" || Boolean(editing);
@@ -111,6 +122,7 @@ export default async function TripsPage({
         ctx={ctx}
         basePath={basePath}
         editQuery={`mes=${mes}&${clienteId ? `cliente_id=${clienteId}&` : ""}`}
+        extraCombustible={extraCombustible}
       />
 
       {showModal && (
