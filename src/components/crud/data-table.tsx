@@ -9,6 +9,7 @@ export function DataTable({
   rows,
   ctx,
   basePath,
+  editQuery = "",
   extraActions,
 }: {
   moduleKey: string;
@@ -17,6 +18,7 @@ export function DataTable({
   rows: Row[];
   ctx: ModuleContext;
   basePath: string;
+  editQuery?: string;
   extraActions?: (row: Row) => React.ReactNode;
 }) {
   return (
@@ -51,7 +53,7 @@ export function DataTable({
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-3">
                     {extraActions?.(row)}
-                    <Link href={`${basePath}?form=${row.id}`} title="Editar" className="text-neutral-400 hover:text-brand-600">
+                    <Link href={`${basePath}?${editQuery}form=${row.id}`} title="Editar" className="text-neutral-400 hover:text-brand-600">
                       ✎
                     </Link>
                     <DeleteButton moduleKey={moduleKey} id={row.id} label={singularLabel} />

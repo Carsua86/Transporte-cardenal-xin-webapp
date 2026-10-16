@@ -6,31 +6,41 @@ import { createClient } from "@/lib/supabase/server";
 import { DataTable } from "@/components/crud/data-table";
 import { RecordFormModal } from "@/components/crud/record-form-modal";
 import { AlertBanner } from "@/components/alert-banner";
+import { FuelTable } from "@/components/fuel/fuel-table";
+import { MonthNav } from "@/components/month-nav";
 import { documentStatus, licenseStatus } from "@/lib/reports";
 import { normalizeRut } from "@/lib/rut";
 import { btnPrimary, inputClass } from "@/lib/ui";
+import { monthRange, todayStr } from "@/lib/format";
 
 export default async function ModulePage({
   params,
   searchParams,
 }: {
   params: Promise<{ modulo: string }>;
-  searchParams: Promise<{ form?: string; q?: string }>;
+  searchParams: Promise<{ form?: string; q?: string; mes?: string }>;
 }) {
   const { modulo } = await params;
-  const { form, q = "" } = await searchParams;
+  const currentMonth = todayStr().slice(0, 7);
+  const { form, q = "", mes: mesParam } = await searchParams;
 
   const mod = MODULES[modulo];
   if (!mod) notFound();
 
+  const mes = mod.monthly && /^\d{4}-\d{2}$/.test(mesParam ?? "") ? mesParam! : currentMonth;
+
   const supabase = await createClient();
-  const [ctx, { data: rows, error }] = await Promise.all([
-    getModuleContext(),
-    supabase.from(mod.table).select("*").order(mod.orderBy.column, { ascending: mod.orderBy.ascending }),
-  ]);
+  let rowsQuery = supabase.from(mod.table).select("*").order(mod.orderBy.column, { ascending: mod.orderBy.ascending });
+  if (mod.monthly) {
+    const { desde, hasta } = monthRange(mes);
+    rowsQuery = rowsQuery.gte("fecha", desde).lte("fecha", hasta);
+  }
+  const [ctx, { data: rows, error }] = await Promise.all([getModuleContext(), rowsQuery]);
 
   const allRowsData = rows ?? [];
   const basePath = `/${modulo}`;
+  const monthQuery = mod.monthly ? `mes=${mes}&` : "";
+  const listHref = mod.monthly ? `${basePath}?mes=${mes}` : basePath;
   const hasRutField = mod.fields.some((f) => f.key === "rut");
 
   const query = q.trim().toLowerCase();
@@ -83,10 +93,23 @@ export default async function ModulePage({
           <h1 className="text-xl font-semibold text-neutral-900">{mod.title}</h1>
           <p className="text-sm text-neutral-500">{rowsData.length} registro(s)</p>
         </div>
-        <Link href={`${basePath}?form=new`} className={btnPrimary}>
+        <Link href={`${basePath}?${monthQuery}form=new`} className={btnPrimary}>
           + {mod.addLabel}
         </Link>
       </div>
+
+      {mod.monthly && <MonthNav mes={mes} currentMonth={currentMonth} basePath={basePath} />}
+
+      {mod.summary && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {mod.summary(rowsData).map((item) => (
+            <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
+              <p className="text-xs font-medium text-neutral-500">{item.label}</p>
+              <p className="mt-1 font-mono text-lg font-semibold text-neutral-900">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <AlertBanner title={alertTitle} items={alertItems} />
 
@@ -105,20 +128,31 @@ export default async function ModulePage({
 
       {error && <p className="text-sm text-red-600">Error cargando datos: {error.message}</p>}
 
-      <DataTable
-        moduleKey={modulo}
-        singularLabel={mod.singularLabel}
-        columns={[...mod.columns, ...fileColumns]}
-        rows={rowsData}
-        ctx={ctx}
-        basePath={basePath}
-      />
+      {modulo === "fuel" ? (
+        <FuelTable
+          columns={[...mod.columns, ...fileColumns]}
+          rows={rowsData}
+          ctx={ctx}
+          basePath={basePath}
+          editQuery={monthQuery}
+        />
+      ) : (
+        <DataTable
+          moduleKey={modulo}
+          singularLabel={mod.singularLabel}
+          columns={[...mod.columns, ...fileColumns]}
+          rows={rowsData}
+          ctx={ctx}
+          basePath={basePath}
+          editQuery={monthQuery}
+        />
+      )}
 
       {showModal && (
         <RecordFormModal
           moduleKey={modulo}
           title={editing ? `Editar ${mod.singularLabel}` : mod.addLabel}
-          closeHref={basePath}
+          closeHref={listHref}
           fields={resolveFields(mod.fields, ctx)}
           initial={editing}
           fileUrls={fileUrls}

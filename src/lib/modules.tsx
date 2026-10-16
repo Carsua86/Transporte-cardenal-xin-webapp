@@ -98,6 +98,10 @@ export type ModuleDef = {
   orderBy: { column: string; ascending: boolean };
   fields: FieldDef[];
   columns: ColumnDef[];
+  /** Muestra los registros separados por mes (según la columna `fecha`) con navegador de meses. */
+  monthly?: boolean;
+  /** Totales que se muestran sobre la tabla, calculados con los registros visibles. */
+  summary?: (rows: Row[]) => { label: string; value: React.ReactNode }[];
 };
 
 export function truckLabel(ctx: ModuleContext, id: string | null) {
@@ -361,6 +365,19 @@ export const MODULES: Record<string, ModuleDef> = {
     addLabel: "Nueva carga",
     singularLabel: "carga de combustible",
     orderBy: { column: "fecha", ascending: false },
+    monthly: true,
+    summary: (rows) => {
+      const total = rows.reduce((s, r) => s + Number(r.costo_total || 0), 0);
+      const conLitros = rows.filter((r) => Number(r.litros) > 0);
+      const litros = conLitros.reduce((s, r) => s + Number(r.litros), 0);
+      const costoConLitros = conLitros.reduce((s, r) => s + Number(r.costo_total || 0), 0);
+      return [
+        { label: "Total del mes", value: fmtMoney(total) },
+        { label: "Litros", value: fmtNum(litros) },
+        { label: "$/Litro promedio", value: litros ? fmtMoney(costoConLitros / litros) : "—" },
+        { label: "Cargas", value: rows.length },
+      ];
+    },
     fields: [
       { key: "truck_id", label: "Camión", type: "select", required: true, options: (ctx) => ctx.trucks },
       { key: "fecha", label: "Fecha", type: "date", required: true },
